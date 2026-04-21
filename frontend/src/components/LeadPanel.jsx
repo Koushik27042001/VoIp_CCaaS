@@ -1,6 +1,6 @@
 import { CalendarClock, CheckCircle2, FilePlus2, Phone } from "lucide-react";
 import { motion } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useStore } from "../store/useStore";
 
 const statuses = [
@@ -16,7 +16,26 @@ export default function LeadPanel() {
   const updateLeadStatus = useStore((state) => state.updateLeadStatus);
   const addLeadNote = useStore((state) => state.addLeadNote);
   const startCall = useStore((state) => state.startCall);
+  const loadCustomersFromBackend = useStore((state) => state.loadCustomersFromBackend);
+  const makeRealCall = useStore((state) => state.makeRealCall);
   const [noteDraft, setNoteDraft] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load customers from backend on mount
+  useEffect(() => {
+    const loadCustomers = async () => {
+      setIsLoading(true);
+      try {
+        await loadCustomersFromBackend();
+      } catch (error) {
+        console.error("Failed to load customers:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadCustomers();
+  }, [loadCustomersFromBackend]);
 
   const groupedSummary = useMemo(() => {
     return leads.reduce(
@@ -30,10 +49,17 @@ export default function LeadPanel() {
     );
   }, [leads]);
 
-  const saveNote = () => {
-    if (!selectedLead || !noteDraft.trim()) return;
-    addLeadNote(selectedLead.id, noteDraft.trim());
-    setNoteDraft("");
+  const handleCallLead = async () => {
+    if (!selectedLead?.phone) return;
+
+    try {
+      console.log(`📞 Calling lead: ${selectedLead.name} (${selectedLead.phone})`);
+      await makeRealCall(selectedLead.phone);
+    } catch (error) {
+      console.error("❌ Call failed:", error);
+      // Fallback to local call if backend fails
+      startCall({ leadId: selectedLead.id });
+    }
   };
 
   return (
@@ -44,7 +70,7 @@ export default function LeadPanel() {
           <h2>Lead workspace</h2>
         </div>
         <div className="lead-summary">
-          <span>{groupedSummary.total} leads</span>
+          <span>{groupedSummary.total} leads {isLoading && "..."}</span>
           <span>{groupedSummary.hot} hot</span>
           <span>{groupedSummary.closed} closed</span>
         </div>
@@ -52,25 +78,31 @@ export default function LeadPanel() {
 
       <div className="lead-layout">
         <div className="lead-list">
-          {leads.map((lead) => (
-            <motion.button
-              layout
-              whileHover={{ x: 4 }}
-              key={lead.id}
-              type="button"
-              className={`lead-card ${selectedLead?.id === lead.id ? "selected" : ""}`}
-              onClick={() => selectLead(lead.id)}
-            >
-              <div>
-                <strong>{lead.name}</strong>
-                <p>{lead.company}</p>
-              </div>
-              <div className="lead-card-meta">
-                <span className={`pill ${lead.priority.toLowerCase()}`}>{lead.priority}</span>
-                <span className="muted-copy">{lead.lastTouch}</span>
-              </div>
-            </motion.button>
-          ))}
+          {isLoading ? (
+            <p className="muted-copy">Loading customers...</p>
+          ) : leads.length === 0 ? (
+            <p className="muted-copy">No customers found</p>
+          ) : (
+            leads.map((lead) => (
+              <motion.button
+                layout
+                whileHover={{ x: 4 }}
+                key={lead.id}
+                type="button"
+                className={`lead-card ${selectedLead?.id === lead.id ? "selected" : ""}`}
+                onClick={() => selectLead(lead.id)}
+              >
+                <div>
+                  <strong>{lead.name}</strong>
+                  <p>{lead.company}</p>
+                </div>
+                <div className="lead-card-meta">
+                  <span className={`pill ${lead.priority.toLowerCase()}`}>{lead.priority}</span>
+                  <span className="muted-copy">{lead.lastTouch}</span>
+                </div>
+              </motion.button>
+            ))
+          )}
         </div>
 
         <div className="lead-detail">
@@ -110,7 +142,7 @@ export default function LeadPanel() {
               </div>
 
               <div className="action-row">
-                <button type="button" className="primary-button" onClick={() => startCall({ leadId: selectedLead.id })}>
+                <button type="button" className="primary-button" onClick={handleCallLead}>
                   <Phone size={16} />
                   Call Lead
                 </button>
@@ -145,7 +177,7 @@ export default function LeadPanel() {
               </div>
             </>
           ) : (
-            <p className="muted-copy">Select a lead to see details.</p>
+            <p className="muted-copy">{isLoading ? "Loading..." : "Select a lead to see details."}</p>
           )}
         </div>
       </div>

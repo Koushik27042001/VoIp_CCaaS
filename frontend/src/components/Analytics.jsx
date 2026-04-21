@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useEffect } from "react";
 import { Activity, PhoneIncoming, PhoneMissed, Star } from "lucide-react";
 import { useStore } from "../store/useStore";
 
@@ -11,6 +12,24 @@ const cardMap = [
 
 export default function Analytics() {
   const analytics = useStore((state) => state.analytics);
+  const loadAnalyticsFromBackend = useStore((state) => state.loadAnalyticsFromBackend);
+
+  // Load analytics from backend on mount
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      try {
+        await loadAnalyticsFromBackend();
+      } catch (error) {
+        console.error("Failed to load analytics:", error);
+      }
+    };
+
+    loadAnalytics();
+
+    // Optionally refresh every 30 seconds
+    const interval = setInterval(loadAnalytics, 30000);
+    return () => clearInterval(interval);
+  }, [loadAnalyticsFromBackend]);
 
   return (
     <section className="analytics-grid">

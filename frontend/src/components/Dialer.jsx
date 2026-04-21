@@ -1,5 +1,6 @@
 import { Delete, PhoneCall } from "lucide-react";
 import { motion } from "framer-motion";
+import { useState } from "react";
 import { useStore } from "../store/useStore";
 
 const keypad = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"];
@@ -10,8 +11,27 @@ export default function Dialer() {
   const backspaceDialedNumber = useStore((state) => state.backspaceDialedNumber);
   const setDialedNumber = useStore((state) => state.setDialedNumber);
   const startCall = useStore((state) => state.startCall);
+  const makeRealCall = useStore((state) => state.makeRealCall);
+  
+  const [isCalling, setIsCalling] = useState(false);
 
-  const canCall = dialedNumber.trim().length > 0;
+  const canCall = dialedNumber.trim().length > 0 && !isCalling;
+
+  const handleCall = async () => {
+    if (!canCall) return;
+
+    setIsCalling(true);
+    try {
+      // Try backend first
+      await makeRealCall(dialedNumber);
+    } catch (error) {
+      console.error("Call failed:", error);
+      // Fallback to local call if backend fails
+      startCall({ number: dialedNumber });
+    } finally {
+      setIsCalling(false);
+    }
+  };
 
   return (
     <section className="panel dialer-panel">
@@ -28,6 +48,7 @@ export default function Dialer() {
         value={dialedNumber}
         placeholder="+91 98765 43210"
         onChange={(event) => setDialedNumber(event.target.value)}
+        disabled={isCalling}
       />
 
       <div className="keypad-grid">
@@ -38,6 +59,7 @@ export default function Dialer() {
             type="button"
             className="keypad-button"
             onClick={() => appendDigit(key)}
+            disabled={isCalling}
           >
             {key}
           </motion.button>
@@ -45,7 +67,12 @@ export default function Dialer() {
       </div>
 
       <div className="dialer-actions">
-        <button type="button" className="ghost-button" onClick={backspaceDialedNumber}>
+        <button 
+          type="button" 
+          className="ghost-button" 
+          onClick={backspaceDialedNumber}
+          disabled={isCalling}
+        >
           <Delete size={16} />
           Delete
         </button>
@@ -53,10 +80,10 @@ export default function Dialer() {
           type="button"
           className="primary-button"
           disabled={!canCall}
-          onClick={() => startCall({ number: dialedNumber })}
+          onClick={handleCall}
         >
           <PhoneCall size={18} />
-          Place Call
+          {isCalling ? "Calling..." : "Place Call"}
         </button>
       </div>
     </section>
