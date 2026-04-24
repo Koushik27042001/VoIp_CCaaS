@@ -1,72 +1,52 @@
-import { History, Mail, NotebookTabs, Sparkles } from "lucide-react";
-import { motion } from "framer-motion";
+import { FiMail, FiCalendar } from "react-icons/fi";
 import { useStore } from "../store/useStore";
-
-const iconMap = {
-  call: History,
-  note: NotebookTabs,
-  status: Sparkles,
-};
 
 export default function CRMPanel() {
   const selectedLead = useStore((state) => state.getSelectedLead());
   const activityFeed = useStore((state) => state.activityFeed);
 
   return (
-    <aside className="crm-panel">
-      <section className="panel crm-profile">
-        <div className="panel-header">
-          <div>
-            <p className="eyebrow">CRM Sync</p>
-            <h2>Customer context</h2>
-          </div>
-          <span className="pill success">Live</span>
-        </div>
-
+    <aside className="crm-panel-modern">
+      <div className="profile-section">
         {selectedLead ? (
-          <motion.div initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}>
-            <div className="crm-card">
-              <h3>{selectedLead.name}</h3>
-              <p>{selectedLead.company}</p>
-              <div className="crm-contact">
-                <Mail size={14} />
-                <span>{selectedLead.email}</span>
-              </div>
-              <div className="crm-tags">
-                <span className={`pill ${selectedLead.priority.toLowerCase()}`}>{selectedLead.priority}</span>
-                <span className="pill neutral">{selectedLead.status}</span>
+          <>
+            <div className="avatar-large">{selectedLead.name?.[0]?.toUpperCase() || "?"}</div>
+            <h2>{selectedLead.name}</h2>
+            <p className="company">{selectedLead.company}</p>
+            
+            <div className="info-chips">
+              <span className={`pill-status ${selectedLead.priority?.toLowerCase() || "warm"}`}>
+                {selectedLead.priority}
+              </span>
+              <div className="contact-info">
+                <FiMail size={14} /> 
+                <span>{selectedLead.email || "No email"}</span>
               </div>
             </div>
-          </motion.div>
-        ) : null}
-      </section>
+          </>
+        ) : (
+          <div className="empty-state">Select a lead to view context</div>
+        )}
+      </div>
 
-      <section className="panel timeline-panel">
-        <div className="panel-header">
-          <div>
-            <p className="eyebrow">Timeline</p>
-            <h2>Recent activity</h2>
-          </div>
-        </div>
-
-        <div className="timeline-list">
-          {activityFeed.map((item) => {
-            const Icon = iconMap[item.type] ?? Sparkles;
-
-            return (
-              <div className="timeline-item" key={item.id}>
-                <div className="timeline-icon">
-                  <Icon size={16} />
-                </div>
-                <div>
-                  <strong>{item.text}</strong>
-                  <p>{item.time}</p>
+      <div className="timeline-section">
+        <h4 className="section-title">Recent Activity</h4>
+        <div className="timeline-container">
+          {activityFeed && activityFeed.length > 0 ? (
+            activityFeed.map((item) => (
+              <div className="timeline-entry" key={item.id}>
+                <div className="dot" />
+                <div className="content">
+                  <p className="activity-text">{item.text}</p>
+                  <span className="activity-time">{item.time}</span>
                 </div>
               </div>
-            );
-          })}
+            ))
+          ) : (
+            <p className="empty-state">No activity yet</p>
+          )}
         </div>
-      </section>
+      </div>
     </aside>
   );
 }

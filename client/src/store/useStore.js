@@ -1,4 +1,9 @@
 import { create } from "zustand";
+import { getSocket } from "../utils/socket";
+import {
+  fetchCustomers,
+  fetchAnalytics,
+} from "../api/api";
 
 const leadSeeds = [
   {
@@ -97,8 +102,23 @@ export const useStore = create((set, get) => ({
   setAgentAvailability: (status) => set({ agentAvailability: status }),
   startCall: ({ number, leadId } = {}) => {
     const state = get();
-    const lead = state.leads.find((item) => item.id === (leadId ?? state.selectedLeadId));
-    const resolvedNumber = number || lead?.phone || state.dialedNumber || "+91 90000 00000";
+
+    const lead = state.leads.find(
+      (item) => item.id === (leadId ?? state.selectedLeadId)
+    );
+
+    const resolvedNumber =
+      number ||
+      lead?.phone ||
+      state.dialedNumber ||
+      "+91 90000 00000";
+
+    const socket = getSocket();
+
+    socket.emit("start_call", {
+      number: resolvedNumber,
+      customer: lead || null,
+    });
 
     set({
       activeCall: {
@@ -110,20 +130,14 @@ export const useStore = create((set, get) => ({
         muted: false,
         onHold: false,
       },
-      dialedNumber: "",
-      activeView: "dialer",
-      agentAvailability: "On Call",
-      analytics: {
-        ...state.analytics,
-        callsHandled: state.analytics.callsHandled + 1,
-      },
-      activityFeed: [
-        { id: `${Date.now()}-call`, type: "call", text: `Dialing ${resolvedNumber}`, time: "Just now" },
-        ...state.activityFeed.slice(0, 5),
-      ],
     });
   },
+
   endCall: () => {
+    const socket = getSocket();
+
+    socket.emit("end_call");
+
     const state = get();
     set({
       activeCall: null,
@@ -139,6 +153,7 @@ export const useStore = create((set, get) => ({
       ],
     });
   },
+
   toggleMute: () =>
     set((state) => ({
       activeCall: state.activeCall ? { ...state.activeCall, muted: !state.activeCall.muted } : null,
@@ -182,4 +197,58 @@ export const useStore = create((set, get) => ({
     return state.leads.find((lead) => lead.id === state.selectedLeadId) ?? null;
   },
   getActiveCallDuration: () => formatElapsed(get().activeCall?.startedAt),
+
+  // Backend Integration Functions
+  loadCustomersFromBackend: async () => {
+    try {
+      const res = await fetchCustomers();
+
+      set({
+        leads: res.data.map((customer) => ({
+          id: customer.id,
+          name: customer.name,
+          phone: customer.phone,
+          status: customer.status || "New",
+          company: customer.company || "Unknown Company",
+          email: customer.email || "",
+          priority: "Warm",
+          lastTouch: "Just now",
+          notes: [],
+        })),
+      });
+    } catch (error) {
+      console.error("Customer load failed:", error);
+    }
+  },
+
+  loadAnalyticsFromBackend: async () => {
+    try {
+      const res = await fetchAnalytics();
+
+      set({
+        analytics: {
+          callsHandled: res.data.callsHandled || 0,
+          missedCalls: res.data.missedCalls || 0,
+          conversionRate: res.data.conversionRate || 0,
+          avgHandleTime: res.data.avgHandleTime || "00:00",
+          csat: res.data.csat || 0,
+        },
+      });
+    } catch (error) {
+      console.error("Analytics load failed:", error);
+    }
+  },
+
+  makeRealCall: async (phoneNumber) => {
+    const socket = getSocket();
+    return new Promise((resolve, reject) => {
+      socket.emit("start_call", { number: phoneNumber }, (response) => {
+        if (response?.success) {
+          resolve(response);
+        } else {
+          reject(new Error(response?.error || "Call failed"));
+        }
+      });
+    });
+  },
 }));

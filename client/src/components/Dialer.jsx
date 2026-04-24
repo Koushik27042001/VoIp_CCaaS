@@ -1,8 +1,9 @@
-import { Delete, PhoneCall } from "lucide-react";
 import { motion } from "framer-motion";
+import { FiDelete, FiPhoneCall } from "react-icons/fi";
 import { useStore } from "../store/useStore";
+import { useState } from "react";
 
-const keypad = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"];
+const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"];
 
 export default function Dialer() {
   const dialedNumber = useStore((state) => state.dialedNumber);
@@ -10,55 +11,76 @@ export default function Dialer() {
   const backspaceDialedNumber = useStore((state) => state.backspaceDialedNumber);
   const setDialedNumber = useStore((state) => state.setDialedNumber);
   const startCall = useStore((state) => state.startCall);
+  const makeRealCall = useStore((state) => state.makeRealCall);
 
-  const canCall = dialedNumber.trim().length > 0;
+  const [isCalling, setIsCalling] = useState(false);
+
+  const canCall = dialedNumber.trim().length > 0 && !isCalling;
+
+  const handleCall = async () => {
+    if (!canCall) return;
+
+    setIsCalling(true);
+
+    try {
+      await makeRealCall(dialedNumber);
+    } catch (error) {
+      console.error("Call failed:", error);
+      startCall({ number: dialedNumber });
+    } finally {
+      setIsCalling(false);
+    }
+  };
 
   return (
-    <section className="panel dialer-panel">
-      <div className="panel-header">
-        <div>
-          <p className="eyebrow">Smart Dialer</p>
-          <h2>Start a new conversation</h2>
-        </div>
-        <span className="pill success">AI-ready</span>
+    <div className="panel dialer-modern">
+      <div className="dialer-header">
+        <p className="eyebrow">Outbound</p>
+        <h2>Smart Dialer</h2>
       </div>
 
-      <input
-        className="dialer-input"
-        value={dialedNumber}
-        placeholder="+91 98765 43210"
-        onChange={(event) => setDialedNumber(event.target.value)}
-      />
+      <div className="display-area">
+        <input
+          type="text"
+          value={dialedNumber}
+          onChange={(e) => setDialedNumber(e.target.value)}
+          placeholder="Enter number..."
+        />
 
-      <div className="keypad-grid">
-        {keypad.map((key) => (
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            key={key}
+        {dialedNumber && (
+          <button
             type="button"
-            className="keypad-button"
-            onClick={() => appendDigit(key)}
+            onClick={backspaceDialedNumber}
+            className="backspace"
           >
-            {key}
+            <FiDelete size={18} />
+          </button>
+        )}
+      </div>
+
+      <div className="keypad">
+        {keys.map((k) => (
+          <motion.button
+            key={k}
+            type="button"
+            className="key"
+            whileTap={{ scale: 0.9 }}
+            onClick={() => appendDigit(k)}
+          >
+            {k}
           </motion.button>
         ))}
       </div>
 
-      <div className="dialer-actions">
-        <button type="button" className="ghost-button" onClick={backspaceDialedNumber}>
-          <Delete size={16} />
-          Delete
-        </button>
-        <button
-          type="button"
-          className="primary-button"
-          disabled={!canCall}
-          onClick={() => startCall({ number: dialedNumber })}
-        >
-          <PhoneCall size={18} />
-          Place Call
-        </button>
-      </div>
-    </section>
+      <button
+        type="button"
+        className="call-trigger"
+        onClick={handleCall}
+        disabled={!canCall}
+      >
+        <FiPhoneCall size={18} />
+        {isCalling ? "Calling..." : "Place Call"}
+      </button>
+    </div>
   );
 }
