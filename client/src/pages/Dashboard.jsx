@@ -1,10 +1,10 @@
-import { AnimatePresence, motion } from "framer-motion";
-import Sidebar from "../components/Sidebar";
-import Analytics from "../components/Analytics";
 import AgentStatus from "../components/AgentStatus";
-import Dialer from "../components/Dialer";
+import Analytics from "../components/Analytics";
+import CallPanel from "../components/CallPanel";
 import CRMPanel from "../components/CRMPanel";
+import Dialer from "../components/Dialer";
 import LeadPanel from "../components/LeadPanel";
+import Sidebar from "../components/Sidebar";
 import { useStore } from "../store/useStore";
 
 export default function Dashboard() {
@@ -15,37 +15,38 @@ export default function Dashboard() {
       <Sidebar />
 
       <main className="dashboard-main">
-        <header className="header-top">
-          <div className="greeting">
-            <h1>Workspace</h1>
-            <p className="text-muted">Welcome back, Agent. Here's what's happening.</p>
-          </div>
+        {/* Scrollable area starts here */}
+        <div className="main-scroll-container">
+          <header className="topbar">
+            <div>
+              <p className="eyebrow">VOIP COMMAND CENTER</p>
+              <h1>High-velocity calling, lead ops and CRM sync</h1>
+            </div>
+            <div className="topbar-actions">
+              <button className="soft-badge">Realtime Analytics</button>
+              <button className="soft-badge success">Production Ready</button>
+            </div>
+          </header>
+
+          {/* Section 1: Metrics & AI Action */}
+          <section className="dashboard-top-section">
+             <Analytics />
+          </section>
+
+          {/* Section 2: Real-time Presence */}
           <AgentStatus />
-        </header>
 
-        <Analytics />
-
-        <div className="workspace-grid">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeView}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              className="view-container"
-            >
-              {activeView === "dialer" && (
-                <div className="dialer-layout">
-                  <Dialer />
-                </div>
-              )}
-              {(activeView === "leads" || activeView === "overview") && <LeadPanel />}
-            </motion.div>
-          </AnimatePresence>
+          {/* Section 3: Operational Workspace */}
+          <section className="workspace">
+            <div className="dialer-stack">
+              <Dialer />
+              <CallPanel />
+            </div>
+            <LeadPanel />
+            <CRMPanel />
+          </section>
         </div>
       </main>
-
-      <CRMPanel />
     </div>
   );
 }

@@ -115,12 +115,14 @@ export const useStore = create((set, get) => ({
 
     const socket = getSocket();
 
-    socket.emit("start_call", {
+    socket?.emit("start_call", {
       number: resolvedNumber,
       customer: lead || null,
     });
 
     set({
+      agentAvailability: "On Call",
+      dialedNumber: "",
       activeCall: {
         leadId: lead?.id ?? null,
         name: lead?.name ?? "Unknown Caller",
@@ -136,7 +138,7 @@ export const useStore = create((set, get) => ({
   endCall: () => {
     const socket = getSocket();
 
-    socket.emit("end_call");
+    socket?.emit("end_call");
 
     const state = get();
     set({
@@ -241,9 +243,29 @@ export const useStore = create((set, get) => ({
 
   makeRealCall: async (phoneNumber) => {
     const socket = getSocket();
+    if (!socket) {
+      throw new Error("Socket unavailable");
+    }
+
     return new Promise((resolve, reject) => {
       socket.emit("start_call", { number: phoneNumber }, (response) => {
         if (response?.success) {
+          const state = get();
+          const lead = state.leads.find((item) => item.phone === phoneNumber);
+
+          set({
+            agentAvailability: "On Call",
+            dialedNumber: "",
+            activeCall: {
+              leadId: lead?.id ?? null,
+              name: lead?.name ?? phoneNumber,
+              company: lead?.company ?? "Manual Dial",
+              number: phoneNumber,
+              startedAt: Date.now(),
+              muted: false,
+              onHold: false,
+            },
+          });
           resolve(response);
         } else {
           reject(new Error(response?.error || "Call failed"));

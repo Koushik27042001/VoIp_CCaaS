@@ -1,13 +1,16 @@
 import { CalendarClock, CheckCircle2, FilePlus2, Phone } from "lucide-react";
-import { motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useStore } from "../store/useStore";
 
-const statuses = [
-  { label: "Contacted", className: "info" },
-  { label: "Interested", className: "warning" },
-  { label: "Closed", className: "success" },
-];
+const statuses = ["Contacted", "Interested", "Closed"];
+
+function initials(name = "") {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2);
+}
 
 export default function LeadPanel() {
   const leads = useStore((state) => state.leads);
@@ -16,111 +19,81 @@ export default function LeadPanel() {
   const updateLeadStatus = useStore((state) => state.updateLeadStatus);
   const addLeadNote = useStore((state) => state.addLeadNote);
   const startCall = useStore((state) => state.startCall);
-  const loadCustomersFromBackend = useStore((state) => state.loadCustomersFromBackend);
   const makeRealCall = useStore((state) => state.makeRealCall);
   const [noteDraft, setNoteDraft] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Load customers from backend on mount
-  useEffect(() => {
-    const loadCustomers = async () => {
-      setIsLoading(true);
-      try {
-        await loadCustomersFromBackend();
-      } catch (error) {
-        console.error("Failed to load customers:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const summary = useMemo(
+    () =>
+      leads.reduce(
+        (acc, lead) => ({
+          total: acc.total + 1,
+          hot: acc.hot + (lead.priority === "Hot" ? 1 : 0),
+          closed: acc.closed + (lead.status === "Closed" ? 1 : 0),
+        }),
+        { total: 0, hot: 0, closed: 0 },
+      ),
+    [leads],
+  );
 
-    loadCustomers();
-  }, [loadCustomersFromBackend]);
-
-  const groupedSummary = useMemo(() => {
-    return leads.reduce(
-      (accumulator, lead) => {
-        accumulator.total += 1;
-        if (lead.priority === "Hot") accumulator.hot += 1;
-        if (lead.status === "Closed") accumulator.closed += 1;
-        return accumulator;
-      },
-      { total: 0, hot: 0, closed: 0 },
-    );
-  }, [leads]);
-
-  const handleCallLead = async () => {
+  const callLead = async () => {
     if (!selectedLead?.phone) return;
 
     try {
-      console.log(`📞 Calling lead: ${selectedLead.name} (${selectedLead.phone})`);
       await makeRealCall(selectedLead.phone);
-    } catch (error) {
-      console.error("❌ Call failed:", error);
-      // Fallback to local call if backend fails
+    } catch {
       startCall({ leadId: selectedLead.id });
     }
   };
 
   const saveNote = () => {
-    if (!noteDraft.trim() || !selectedLead?.id) return;
-
+    if (!noteDraft.trim() || !selectedLead) return;
     addLeadNote(selectedLead.id, noteDraft.trim());
     setNoteDraft("");
   };
 
   return (
-    <section className="panel lead-panel">
-      <div className="panel-header">
+    <section className="lead-panel">
+      <div className="lead-panel-header">
         <div>
           <p className="eyebrow">Pipeline</p>
-          <h2>Lead workspace</h2>
+          <h2>Lead Workspace</h2>
         </div>
-        <div className="lead-summary">
-          <span>{groupedSummary.total} leads {isLoading && "..."}</span>
-          <span>{groupedSummary.hot} hot</span>
-          <span>{groupedSummary.closed} closed</span>
+        <div className="header-stats">
+          <div><strong>{summary.total}</strong><span>Total</span></div>
+          <div><strong className="hot">{summary.hot}</strong><span>Hot</span></div>
+          <div><strong className="closed">{summary.closed}</strong><span>Closed</span></div>
         </div>
       </div>
 
-      <div className="lead-layout">
+      <div className="lead-body">
         <div className="lead-list">
-          {isLoading ? (
-            <p className="muted-copy">Loading customers...</p>
-          ) : leads.length === 0 ? (
-            <p className="muted-copy">No customers found</p>
-          ) : (
-            leads.map((lead) => (
-              <motion.button
-                layout
-                whileHover={{ x: 4 }}
-                key={lead.id}
-                type="button"
-                className={`lead-card ${selectedLead?.id === lead.id ? "selected" : ""}`}
-                onClick={() => selectLead(lead.id)}
-              >
-                <div>
-                  <strong>{lead.name}</strong>
-                  <p>{lead.company}</p>
-                </div>
-                <div className="lead-card-meta">
-                  <span className={`pill ${lead.priority.toLowerCase()}`}>{lead.priority}</span>
-                  <span className="muted-copy">{lead.lastTouch}</span>
-                </div>
-              </motion.button>
-            ))
-          )}
+          {leads.map((lead) => (
+            <button
+              key={lead.id}
+              className={`lead-card ${selectedLead?.id === lead.id ? "selected" : ""}`}
+              type="button"
+              onClick={() => selectLead(lead.id)}
+            >
+              <div>
+                <strong>{lead.name}</strong>
+                <p>{lead.company}</p>
+                <span>{lead.lastTouch}</span>
+              </div>
+              <span className={`pill ${lead.priority?.toLowerCase() || "warm"}`}>{lead.priority}</span>
+            </button>
+          ))}
         </div>
 
         <div className="lead-detail">
           {selectedLead ? (
             <>
-              <div className="lead-headline">
+              <div className="lead-person">
+                <div className="avatar accent">{initials(selectedLead.name)}</div>
                 <div>
                   <h3>{selectedLead.name}</h3>
                   <p>{selectedLead.company}</p>
                 </div>
-                <span className={`pill ${selectedLead.priority.toLowerCase()}`}>{selectedLead.status}</span>
+                <span className={`pill ${selectedLead.priority?.toLowerCase() || "warm"}`}>{selectedLead.priority}</span>
               </div>
 
               <div className="detail-grid">
@@ -130,31 +103,31 @@ export default function LeadPanel() {
                 </div>
                 <div>
                   <span className="label">Email</span>
-                  <strong>{selectedLead.email}</strong>
+                  <strong>{selectedLead.email || "No email"}</strong>
                 </div>
               </div>
 
               <div className="status-actions">
                 {statuses.map((status) => (
                   <button
-                    key={status.label}
                     type="button"
-                    className={`status-button ${status.className}`}
-                    onClick={() => updateLeadStatus(selectedLead.id, status.label)}
+                    key={status}
+                    className={selectedLead.status === status ? "active" : ""}
+                    onClick={() => updateLeadStatus(selectedLead.id, status)}
                   >
-                    <CheckCircle2 size={16} />
-                    {status.label}
+                    <CheckCircle2 size={14} />
+                    {status}
                   </button>
                 ))}
               </div>
 
               <div className="action-row">
-                <button type="button" className="primary-button" onClick={handleCallLead}>
-                  <Phone size={16} />
+                <button className="primary-button" type="button" onClick={callLead}>
+                  <Phone size={15} />
                   Call Lead
                 </button>
-                <button type="button" className="ghost-button">
-                  <CalendarClock size={16} />
+                <button className="ghost-button" type="button">
+                  <CalendarClock size={15} />
                   Schedule
                 </button>
               </div>
@@ -162,29 +135,26 @@ export default function LeadPanel() {
               <div className="notes-box">
                 <div className="notes-header">
                   <h4>Notes</h4>
-                  <FilePlus2 size={16} />
+                  <FilePlus2 size={15} />
                 </div>
                 <div className="note-composer">
-                  <textarea
+                  <input
                     value={noteDraft}
-                    placeholder="Capture objections, pricing signals, or follow-up context..."
+                    placeholder="Add observation or follow-up..."
                     onChange={(event) => setNoteDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") saveNote();
+                    }}
                   />
-                  <button type="button" className="ghost-button" onClick={saveNote}>
-                    Add Note
-                  </button>
+                  <button className="ghost-button" type="button" onClick={saveNote}>Save</button>
                 </div>
-                <div className="notes-list">
-                  {selectedLead.notes.map((note, index) => (
-                    <div key={`${selectedLead.id}-${index}`} className="note-item">
-                      {note}
-                    </div>
-                  ))}
-                </div>
+                {selectedLead.notes?.map((note, index) => (
+                  <p className="note-item" key={`${selectedLead.id}-${index}`}>{note}</p>
+                ))}
               </div>
             </>
           ) : (
-            <p className="muted-copy">{isLoading ? "Loading..." : "Select a lead to see details."}</p>
+            <p className="muted-copy center-copy">Select a lead to view details.</p>
           )}
         </div>
       </div>
