@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import Dashboard from "./pages/Dashboard";
 import { initSocket } from "./utils/socket";
 import { useStore } from "./store/useStore";
-import "./styles-modern.css";
+import "./styles/globals.css";
 
 export default function App() {
   const loadCustomersFromBackend = useStore(

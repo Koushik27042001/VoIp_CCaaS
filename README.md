@@ -154,7 +154,6 @@ GET    /api/customers/:phone        ← Lookup by phone
 GET    /api/customers/search?q=...  ← Search by name
 POST   /api/customers               ← Create new
 PUT    /api/customers/:id           ← Update
-```
 
 ### Calls (Real-time)
 ```
@@ -249,7 +248,6 @@ if (USE_MOCK === true) {
    ↓
 8. Frontend: Show call history & notes input
 ```
-
 ---
 
 ## 📊 What's Ready vs Future

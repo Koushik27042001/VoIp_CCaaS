@@ -1,12 +1,12 @@
+import { BarChart3, Grid2X2, Headphones, Settings, UsersRound } from "lucide-react";
 import { motion } from "framer-motion";
-import { HiOutlineSquares2X2, HiOutlinePhone, HiOutlineUsers, HiOutlineChartBar, HiOutlineCog6Tooth } from "react-icons/hi2";
 import { useStore } from "../store/useStore";
 
 const items = [
-  { id: "overview", icon: HiOutlineSquares2X2, label: "Overview" },
-  { id: "dialer", icon: HiOutlinePhone, label: "Dialer" },
-  { id: "leads", icon: HiOutlineUsers, label: "Leads" },
-  { id: "analytics", icon: HiOutlineChartBar, label: "Insights" },
+  { id: "dialer", label: "Dialer", Icon: Headphones },
+  { id: "leads", label: "Leads", Icon: UsersRound },
+  { id: "analytics", label: "Insights", Icon: BarChart3 },
+  { id: "overview", label: "Overview", Icon: Grid2X2 },
 ];
 
 export default function Sidebar() {
@@ -14,35 +14,35 @@ export default function Sidebar() {
   const setActiveView = useStore((state) => state.setActiveView);
 
   return (
-    <aside className="sidebar-modern">
-      <div className="brand-container">
-        <div className="logo-v">VC</div>
+    <aside className="sidebar">
+      <div className="sidebar-top">
+        <button className="brand-mark" type="button" aria-label="VoIP Command Center">
+          VC
+        </button>
+
+        <nav className="sidebar-nav" aria-label="Primary navigation">
+          {items.map(({ id, label, Icon }) => (
+            <motion.button
+              key={id}
+              type="button"
+              title={label}
+              aria-label={label}
+              aria-current={activeView === id ? "page" : undefined}
+              className={`sidebar-button ${activeView === id ? "active" : ""}`}
+              onClick={() => setActiveView(id)}
+              whileTap={{ scale: 0.94 }}
+            >
+              <Icon size={19} strokeWidth={2.25} />
+              <span>{label}</span>
+            </motion.button>
+          ))}
+        </nav>
       </div>
 
-      <nav className="nav-items">
-        {items.map(({ id, icon: Icon, label }) => (
-          <motion.div key={id} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <button
-              onClick={() => setActiveView(id)}
-              className={`nav-btn ${activeView === id ? "active" : ""}`}
-              title={label}
-            >
-              <Icon size={24} />
-              {activeView === id && (
-                <motion.div
-                  layoutId="nav-pill"
-                  className="active-pill"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-            </button>
-          </motion.div>
-        ))}
-      </nav>
-
-      <motion.button className="nav-btn settings-btn" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-        <HiOutlineCog6Tooth size={24} />
-      </motion.button>
+      <button className="sidebar-button settings-button" type="button" aria-label="Settings">
+        <Settings size={18} strokeWidth={2.25} />
+        <span>Settings</span>
+      </button>
     </aside>
   );
 }
