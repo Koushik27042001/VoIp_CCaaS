@@ -17,6 +17,7 @@ export default function AgentStatus() {
   const agentAvailability = useStore((state) => state.agentAvailability);
   const setAgentAvailability = useStore((state) => state.setAgentAvailability);
   const agents = useStore((state) => state.agents);
+  const backendOnline = useStore((state) => state.backendOnline);
 
   return (
     <section className="agent-strip">
@@ -53,8 +54,8 @@ export default function AgentStatus() {
       </div>
 
       <div className="system-live">
-        <span className="pulse-dot available" />
-        <span>System live</span>
+        <span className={`pulse-dot ${backendOnline === false ? "offline" : "available"}`} />
+        <span>{backendOnline === false ? "Backend offline" : "System live"}</span>
       </div>
     </section>
   );

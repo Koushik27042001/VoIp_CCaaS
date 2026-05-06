@@ -26,6 +26,7 @@ function MetricCard({ label, value, trend, icon: Icon, trendColor }) {
 
 export default function Analytics() {
   const analytics = useStore((state) => state.analytics);
+  const backendOnline = useStore((state) => state.backendOnline);
   const loadAnalyticsFromBackend = useStore((state) => state.loadAnalyticsFromBackend);
 
   useEffect(() => {
@@ -38,7 +39,7 @@ export default function Analytics() {
         <MetricCard
           key={key}
           label={label}
-          value={`${analytics[key] ?? 0}${suffix}`}
+          value={backendOnline ? `${analytics[key] ?? 0}${suffix}` : "—"}
           trend={trend}
           trendColor={tone}
           icon={Icon}

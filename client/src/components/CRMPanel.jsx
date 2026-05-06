@@ -18,6 +18,7 @@ function initials(name = "") {
 export default function CRMPanel() {
   const selectedLead = useStore((state) => state.getSelectedLead());
   const activityFeed = useStore((state) => state.activityFeed);
+  const backendOnline = useStore((state) => state.backendOnline);
 
   return (
     <aside className="crm-panel">
@@ -49,7 +50,12 @@ export default function CRMPanel() {
             </div>
           </div>
         ) : (
-          <p className="muted-copy center-copy">Select a lead to view context.</p>
+          <p className="muted-copy center-copy">
+            {backendOnline === false
+              ? "Backend offline. Customer context unavailable until the server starts."
+              : "Select a lead to view context."
+            }
+          </p>
         )}
       </section>
 
