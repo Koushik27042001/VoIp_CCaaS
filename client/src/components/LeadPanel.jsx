@@ -1,5 +1,5 @@
 import { CalendarClock, CheckCircle2, FilePlus2, Phone } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useStore } from "../store/useStore";
 
 const statuses = ["Contacted", "Interested", "Closed"];
@@ -21,7 +21,14 @@ export default function LeadPanel() {
   const startCall = useStore((state) => state.startCall);
   const makeRealCall = useStore((state) => state.makeRealCall);
   const backendOnline = useStore((state) => state.backendOnline);
+  const leadsLoading = useStore((state) => state.leadsLoading);
+  const leadsError = useStore((state) => state.leadsError);
+  const loadCustomersFromBackend = useStore((state) => state.loadCustomersFromBackend);
   const [noteDraft, setNoteDraft] = useState("");
+
+  useEffect(() => {
+    loadCustomersFromBackend();
+  }, [loadCustomersFromBackend]);
 
   const summary = useMemo(
     () =>
@@ -70,10 +77,11 @@ export default function LeadPanel() {
         <div className="lead-list">
           {leads.length === 0 ? (
             <div className="empty-state muted-copy">
-              {backendOnline === false
-                ? "Backend offline. No leads available until the server starts."
-                : "No leads available yet."
-              }
+              {leadsLoading
+                ? "Loading leads from backend..."
+                : leadsError || (backendOnline === false
+                  ? "Unable to reach backend. Check API URL/port and try again."
+                  : "No leads available yet.")}
             </div>
           ) : (
             leads.map((lead) => (

@@ -4,6 +4,8 @@ import { useStore } from "../store/useStore";
 
 export default function CallPanel() {
   const activeCall = useStore((state) => state.activeCall);
+  const isCalling = useStore((state) => state.isCalling);
+  const callingNumber = useStore((state) => state.callingNumber);
   const toggleMute = useStore((state) => state.toggleMute);
   const toggleHold = useStore((state) => state.toggleHold);
   const endCall = useStore((state) => state.endCall);
@@ -26,8 +28,12 @@ export default function CallPanel() {
         <div className="avatar muted lg">
           <Phone size={20} />
         </div>
-        <h3>No active call</h3>
-        <p className="muted-copy">Pick a lead or dial to begin a conversation.</p>
+        <h3>{isCalling ? "Calling..." : "No active call"}</h3>
+        <p className="muted-copy">
+          {isCalling
+            ? `Placing outbound call to ${callingNumber || "selected number"}`
+            : "Pick a lead or dial to begin a conversation."}
+        </p>
       </section>
     );
   }

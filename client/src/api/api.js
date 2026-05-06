@@ -8,3 +8,6 @@ export const fetchAnalytics = () =>
 
 export const fetchCallHistory = () =>
   API.get("/calls/history");
+
+export const placeOutboundCall = (phone) =>
+  API.post("/calls/outbound", { phone });

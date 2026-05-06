@@ -1,6 +1,5 @@
 import { Delete, PhoneCall } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState } from "react";
 import { useStore } from "../store/useStore";
 
 const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"];
@@ -12,20 +11,17 @@ export default function Dialer() {
   const setDialedNumber = useStore((state) => state.setDialedNumber);
   const startCall = useStore((state) => state.startCall);
   const makeRealCall = useStore((state) => state.makeRealCall);
-  const [isCalling, setIsCalling] = useState(false);
+  const isCalling = useStore((state) => state.isCalling);
 
   const canCall = dialedNumber.trim().length > 0 && !isCalling;
 
   const handleCall = async () => {
     if (!canCall) return;
 
-    setIsCalling(true);
     try {
       await makeRealCall(dialedNumber);
     } catch {
       startCall({ number: dialedNumber });
-    } finally {
-      setIsCalling(false);
     }
   };
 

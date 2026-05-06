@@ -1,11 +1,12 @@
 import { io } from "socket.io-client";
 
 let socket = null;
+const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "http://localhost:5000";
 
 export const initSocket = () => {
   if (socket) return socket;
 
-  socket = io("http://localhost:5000", {
+  socket = io(SOCKET_URL, {
     transports: ["websocket"],
     reconnection: true,
     reconnectionAttempts: Infinity,

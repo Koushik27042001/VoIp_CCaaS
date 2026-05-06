@@ -4,6 +4,7 @@ import API from "../api/client";
 import {
   fetchCustomers,
   fetchAnalytics,
+  placeOutboundCall,
 } from "../api/api";
 
 const leadSeeds = [
@@ -84,6 +85,8 @@ export const useStore = create((set, get) => ({
   leads: [],
   selectedLeadId: null,
   activeCall: null,
+  isCalling: false,
+  callingNumber: "",
   agentAvailability: "Available",
   agents: agentStatuses,
   activityFeed: [
@@ -93,6 +96,8 @@ export const useStore = create((set, get) => ({
   ],
   backendOnline: null,
   backendStatusMessage: "Checking backend...",
+  leadsLoading: false,
+  leadsError: "",
   analytics: {
     callsHandled: 0,
     missedCalls: 0,
@@ -110,6 +115,18 @@ export const useStore = create((set, get) => ({
     set((state) => ({ dialedNumber: state.dialedNumber.slice(0, -1) })),
   selectLead: (leadId) => set({ selectedLeadId: leadId }),
   setAgentAvailability: (status) => set({ agentAvailability: status }),
+  pushActivity: (entry) =>
+    set((state) => ({
+      activityFeed: [
+        {
+          id: entry.id || `${Date.now()}-${entry.type || "activity"}`,
+          type: entry.type || "status",
+          text: entry.text || "New activity",
+          time: entry.time || "Just now",
+        },
+        ...state.activityFeed.slice(0, 5),
+      ],
+    })),
   startCall: ({ number, leadId } = {}) => {
     const state = get();
 
@@ -132,6 +149,8 @@ export const useStore = create((set, get) => ({
 
     set({
       agentAvailability: "On Call",
+      isCalling: false,
+      callingNumber: "",
       dialedNumber: "",
       activeCall: {
         leadId: lead?.id ?? null,
@@ -153,6 +172,8 @@ export const useStore = create((set, get) => ({
     const state = get();
     set({
       activeCall: null,
+      isCalling: false,
+      callingNumber: "",
       agentAvailability: "Available",
       activityFeed: [
         {
@@ -224,6 +245,7 @@ export const useStore = create((set, get) => ({
   },
 
   loadCustomersFromBackend: async () => {
+    set({ leadsLoading: true, leadsError: "" });
     try {
       const res = await fetchCustomers();
       const leads = res.data.map((customer) => ({
@@ -243,6 +265,8 @@ export const useStore = create((set, get) => ({
         selectedLeadId: leads[0]?.id ?? null,
         backendOnline: true,
         backendStatusMessage: "Backend online",
+        leadsLoading: false,
+        leadsError: "",
       });
     } catch (error) {
       console.error("Customer load failed:", error);
@@ -251,6 +275,8 @@ export const useStore = create((set, get) => ({
         selectedLeadId: null,
         backendOnline: false,
         backendStatusMessage: "Backend unavailable",
+        leadsLoading: false,
+        leadsError: "Unable to load leads from backend",
       });
     }
   },
@@ -290,35 +316,40 @@ export const useStore = create((set, get) => ({
   },
 
   makeRealCall: async (phoneNumber) => {
-    const socket = getSocket();
-    if (!socket) {
-      throw new Error("Socket unavailable");
-    }
+    const state = get();
+    const lead = state.leads.find((item) => item.phone === phoneNumber);
 
-    return new Promise((resolve, reject) => {
-      socket.emit("start_call", { number: phoneNumber }, (response) => {
-        if (response?.success) {
-          const state = get();
-          const lead = state.leads.find((item) => item.phone === phoneNumber);
-
-          set({
-            agentAvailability: "On Call",
-            dialedNumber: "",
-            activeCall: {
-              leadId: lead?.id ?? null,
-              name: lead?.name ?? phoneNumber,
-              company: lead?.company ?? "Manual Dial",
-              number: phoneNumber,
-              startedAt: Date.now(),
-              muted: false,
-              onHold: false,
-            },
-          });
-          resolve(response);
-        } else {
-          reject(new Error(response?.error || "Call failed"));
-        }
-      });
+    set({
+      isCalling: true,
+      callingNumber: phoneNumber,
     });
+
+    try {
+      const response = await placeOutboundCall(phoneNumber);
+
+      set({
+        agentAvailability: "On Call",
+        isCalling: false,
+        callingNumber: "",
+        dialedNumber: "",
+        activeCall: {
+          leadId: lead?.id ?? null,
+          name: lead?.name ?? phoneNumber,
+          company: lead?.company ?? "Manual Dial",
+          number: phoneNumber,
+          startedAt: Date.now(),
+          muted: false,
+          onHold: false,
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      set({
+        isCalling: false,
+        callingNumber: "",
+      });
+      throw error;
+    }
   },
 }));

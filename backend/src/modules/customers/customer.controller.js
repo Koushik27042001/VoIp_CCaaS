@@ -1,5 +1,6 @@
 import Customer from "../../models/Customer.js";
 import mockCustomers from "../../data/mockCustomers.js";
+import { getIO } from "../../socket.js";
 
 const USE_MOCK = process.env.USE_MOCK === "true";
 
@@ -77,6 +78,12 @@ export const updateCustomer = async (req, res) => {
 
       Object.assign(customer, req.body);
       customer.updatedAt = new Date();
+      try {
+        const io = getIO();
+        io.emit("lead_updated", customer);
+      } catch {
+        // Socket server may not be initialized in some test contexts.
+      }
 
       return res.json(customer);
     }
@@ -86,6 +93,13 @@ export const updateCustomer = async (req, res) => {
       req.body,
       { new: true }
     );
+
+    try {
+      const io = getIO();
+      io.emit("lead_updated", updated);
+    } catch {
+      // Socket server may not be initialized in some test contexts.
+    }
 
     res.json(updated);
   } catch (err) {

@@ -8,7 +8,7 @@ import { protect } from "../../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-router.post("/outbound", protect, makeCall);
+router.post("/outbound", makeCall);
 router.get("/history", protect, getCallHistory);
 router.post("/:id/notes", protect, addCallNote);
 
