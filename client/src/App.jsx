@@ -13,12 +13,15 @@ export default function App() {
     (state) => state.loadAnalyticsFromBackend
   );
 
+  const checkBackendHealth = useStore((state) => state.checkBackendHealth);
+
   useEffect(() => {
     initSocket();
 
+    checkBackendHealth();
     loadCustomersFromBackend();
     loadAnalyticsFromBackend();
-  }, []);
+  }, [checkBackendHealth, loadCustomersFromBackend, loadAnalyticsFromBackend]);
 
   return <Dashboard />;
 }

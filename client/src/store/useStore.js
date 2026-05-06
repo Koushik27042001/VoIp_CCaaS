@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { getSocket } from "../utils/socket";
+import API from "../api/client";
 import {
   fetchCustomers,
   fetchAnalytics,
@@ -70,11 +71,18 @@ const formatElapsed = (startedAt) => {
   return `${minutes}:${seconds}`;
 };
 
+const formatDuration = (seconds) => {
+  const total = Number(seconds) || 0;
+  const minutes = Math.floor(total / 60);
+  const remainder = total % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+};
+
 export const useStore = create((set, get) => ({
   activeView: "dialer",
   dialedNumber: "",
-  leads: leadSeeds,
-  selectedLeadId: leadSeeds[0].id,
+  leads: [],
+  selectedLeadId: null,
   activeCall: null,
   agentAvailability: "Available",
   agents: agentStatuses,
@@ -83,12 +91,14 @@ export const useStore = create((set, get) => ({
     { id: "ac-2", type: "note", text: "Pricing note added to Orbit Retail", time: "12 min ago" },
     { id: "ac-3", type: "status", text: "Priya Nair moved to Closed", time: "1 hr ago" },
   ],
+  backendOnline: null,
+  backendStatusMessage: "Checking backend...",
   analytics: {
-    callsHandled: 47,
-    missedCalls: 6,
-    csat: 4.6,
-    conversionRate: 28,
-    avgHandleTime: "04:18",
+    callsHandled: 0,
+    missedCalls: 0,
+    csat: 0,
+    conversionRate: 0,
+    avgHandleTime: "00:00",
   },
   setActiveView: (view) => set({ activeView: view }),
   setDialedNumber: (value) => set({ dialedNumber: value }),
@@ -201,25 +211,47 @@ export const useStore = create((set, get) => ({
   getActiveCallDuration: () => formatElapsed(get().activeCall?.startedAt),
 
   // Backend Integration Functions
+  checkBackendHealth: async () => {
+    try {
+      await API.get("/health");
+      set({ backendOnline: true, backendStatusMessage: "Online" });
+      return true;
+    } catch (error) {
+      console.error("Backend health check failed:", error);
+      set({ backendOnline: false, backendStatusMessage: "Backend unavailable" });
+      return false;
+    }
+  },
+
   loadCustomersFromBackend: async () => {
     try {
       const res = await fetchCustomers();
+      const leads = res.data.map((customer) => ({
+        id: customer._id || customer.id || `${customer.phone}`,
+        name: customer.name,
+        phone: customer.phone,
+        status: customer.status || "New",
+        company: customer.company || "Unknown Company",
+        email: customer.email || "",
+        priority: "Warm",
+        lastTouch: "Just now",
+        notes: Array.isArray(customer.notes) ? customer.notes : [],
+      }));
 
       set({
-        leads: res.data.map((customer) => ({
-          id: customer.id,
-          name: customer.name,
-          phone: customer.phone,
-          status: customer.status || "New",
-          company: customer.company || "Unknown Company",
-          email: customer.email || "",
-          priority: "Warm",
-          lastTouch: "Just now",
-          notes: [],
-        })),
+        leads,
+        selectedLeadId: leads[0]?.id ?? null,
+        backendOnline: true,
+        backendStatusMessage: "Backend online",
       });
     } catch (error) {
       console.error("Customer load failed:", error);
+      set({
+        leads: [],
+        selectedLeadId: null,
+        backendOnline: false,
+        backendStatusMessage: "Backend unavailable",
+      });
     }
   },
 
@@ -229,15 +261,31 @@ export const useStore = create((set, get) => ({
 
       set({
         analytics: {
-          callsHandled: res.data.callsHandled || 0,
-          missedCalls: res.data.missedCalls || 0,
-          conversionRate: res.data.conversionRate || 0,
-          avgHandleTime: res.data.avgHandleTime || "00:00",
-          csat: res.data.csat || 0,
+          callsHandled: res.data.callsHandled ?? res.data.total ?? 0,
+          missedCalls: res.data.missedCalls ?? res.data.missed ?? 0,
+          conversionRate:
+            res.data.conversionRate ??
+            (res.data.total ? Math.round(((res.data.completed || 0) / res.data.total) * 100) : 0),
+          avgHandleTime:
+            res.data.avgHandleTime || formatDuration(res.data.avgDuration || 0),
+          csat: res.data.csat ?? 0,
         },
+        backendOnline: true,
+        backendStatusMessage: "Backend online",
       });
     } catch (error) {
       console.error("Analytics load failed:", error);
+      set({
+        analytics: {
+          callsHandled: 0,
+          missedCalls: 0,
+          csat: 0,
+          conversionRate: 0,
+          avgHandleTime: "00:00",
+        },
+        backendOnline: false,
+        backendStatusMessage: "Backend unavailable",
+      });
     }
   },
 

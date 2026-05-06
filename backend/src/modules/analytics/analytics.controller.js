@@ -14,6 +14,13 @@ const isToday = (date) => {
   );
 };
 
+const formatDuration = (seconds) => {
+  const secs = Number(seconds) || 0;
+  const minutes = Math.floor(secs / 60);
+  const remaining = secs % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(remaining).padStart(2, "0")}`;
+};
+
 export const getTodayAnalytics = async (req, res) => {
   try {
     if (USE_MOCK) {
@@ -44,6 +51,10 @@ export const getTodayAnalytics = async (req, res) => {
         missed,
         failed,
         avgDuration,
+        callsHandled: total,
+        conversionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
+        avgHandleTime: formatDuration(avgDuration),
+        csat: 4.6,
       });
     }
 
@@ -54,6 +65,10 @@ export const getTodayAnalytics = async (req, res) => {
       missed: 0,
       failed: 0,
       avgDuration: 0,
+      callsHandled: 0,
+      conversionRate: 0,
+      avgHandleTime: "00:00",
+      csat: 0,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

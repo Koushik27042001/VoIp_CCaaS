@@ -20,6 +20,7 @@ export default function LeadPanel() {
   const addLeadNote = useStore((state) => state.addLeadNote);
   const startCall = useStore((state) => state.startCall);
   const makeRealCall = useStore((state) => state.makeRealCall);
+  const backendOnline = useStore((state) => state.backendOnline);
   const [noteDraft, setNoteDraft] = useState("");
 
   const summary = useMemo(
@@ -67,21 +68,30 @@ export default function LeadPanel() {
 
       <div className="lead-body">
         <div className="lead-list">
-          {leads.map((lead) => (
-            <button
-              key={lead.id}
-              className={`lead-card ${selectedLead?.id === lead.id ? "selected" : ""}`}
-              type="button"
-              onClick={() => selectLead(lead.id)}
-            >
-              <div>
-                <strong>{lead.name}</strong>
-                <p>{lead.company}</p>
-                <span>{lead.lastTouch}</span>
-              </div>
-              <span className={`pill ${lead.priority?.toLowerCase() || "warm"}`}>{lead.priority}</span>
-            </button>
-          ))}
+          {leads.length === 0 ? (
+            <div className="empty-state muted-copy">
+              {backendOnline === false
+                ? "Backend offline. No leads available until the server starts."
+                : "No leads available yet."
+              }
+            </div>
+          ) : (
+            leads.map((lead) => (
+              <button
+                key={lead.id}
+                className={`lead-card ${selectedLead?.id === lead.id ? "selected" : ""}`}
+                type="button"
+                onClick={() => selectLead(lead.id)}
+              >
+                <div>
+                  <strong>{lead.name}</strong>
+                  <p>{lead.company}</p>
+                  <span>{lead.lastTouch}</span>
+                </div>
+                <span className={`pill ${lead.priority?.toLowerCase() || "warm"}`}>{lead.priority}</span>
+              </button>
+            ))
+          )}
         </div>
 
         <div className="lead-detail">
@@ -154,7 +164,12 @@ export default function LeadPanel() {
               </div>
             </>
           ) : (
-            <p className="muted-copy center-copy">Select a lead to view details.</p>
+            <p className="muted-copy center-copy">
+              {backendOnline === false
+                ? "Backend offline. Customer details unavailable until the server starts."
+                : "Select a lead to view details."
+              }
+            </p>
           )}
         </div>
       </div>
