@@ -21,7 +21,11 @@ export default function Dialer() {
     try {
       await makeRealCall(dialedNumber);
     } catch {
-      startCall({ number: dialedNumber });
+      try {
+        await startCall({ number: dialedNumber });
+      } catch {
+        // Store owns the visible error/activity state.
+      }
     }
   };
 

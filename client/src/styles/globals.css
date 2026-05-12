@@ -826,9 +826,18 @@ svg {
 }
 
 .lead-list {
+  display: flex;
+  flex-direction: column;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
   border-right: 1px solid var(--bd);
+}
+
+.lead-page-list {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
 }
 
 .lead-card {
@@ -843,6 +852,67 @@ svg {
   cursor: pointer;
   padding: 13px 14px;
   text-align: left;
+}
+
+.lead-pagination {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 58px;
+  border-top: 1px solid var(--bd);
+  background: rgba(5, 5, 9, 0.28);
+  padding: 10px 12px;
+}
+
+.pagination-range {
+  color: var(--t3);
+  font-family: var(--m);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pagination-controls,
+.pagination-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pagination-controls button {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  background: var(--b2);
+  color: var(--t2);
+  cursor: pointer;
+  font-family: var(--m);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.pagination-controls button:hover:not(:disabled),
+.pagination-controls button.active {
+  border-color: rgba(124, 58, 237, 0.42);
+  background: var(--acd);
+  color: var(--ac2);
+}
+
+.pagination-controls button:disabled {
+  color: var(--t3);
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.pagination-gap {
+  color: var(--t3);
+  font-family: var(--m);
+  font-size: 11px;
 }
 
 .lead-card:hover,
@@ -1131,7 +1201,7 @@ svg {
   }
 
   .lead-list {
-    max-height: 280px;
+    max-height: none;
     border-right: 0;
     border-bottom: 1px solid var(--bd);
   }
@@ -1160,5 +1230,14 @@ svg {
   .action-row {
     grid-template-columns: 1fr;
     flex-direction: column;
+  }
+
+  .lead-pagination {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .pagination-controls {
+    flex-wrap: wrap;
   }
 }

@@ -6,6 +6,15 @@ import {
   fetchAnalytics,
   placeOutboundCall,
 } from "../api/api";
+import {
+  getLocalStream,
+  setMicrophoneEnabled,
+  stopLocalStream,
+} from "../webrtc/media";
+import {
+  closePeerConnection,
+  createPeerConnection,
+} from "../webrtc/peer";
 
 const leadSeeds = [
   {
@@ -96,6 +105,7 @@ export const useStore = create((set, get) => ({
   ],
   backendOnline: null,
   backendStatusMessage: "Checking backend...",
+  callError: "",
   leadsLoading: false,
   leadsError: "",
   analytics: {
@@ -127,7 +137,7 @@ export const useStore = create((set, get) => ({
         ...state.activityFeed.slice(0, 5),
       ],
     })),
-  startCall: ({ number, leadId } = {}) => {
+  startCall: async ({ number, leadId } = {}) => {
     const state = get();
 
     const lead = state.leads.find(
@@ -141,39 +151,106 @@ export const useStore = create((set, get) => ({
       "+91 90000 00000";
 
     const socket = getSocket();
-
-    socket?.emit("start_call", {
-      number: resolvedNumber,
-      customer: lead || null,
-    });
+    const callId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
     set({
-      agentAvailability: "On Call",
-      isCalling: false,
-      callingNumber: "",
-      dialedNumber: "",
-      activeCall: {
-        leadId: lead?.id ?? null,
-        name: lead?.name ?? "Unknown Caller",
-        company: lead?.company ?? "Manual Dial",
-        number: resolvedNumber,
-        startedAt: Date.now(),
-        muted: false,
-        onHold: false,
-      },
+      isCalling: true,
+      callingNumber: resolvedNumber,
+      callError: "",
     });
+
+    try {
+      const stream = await getLocalStream();
+      const peer = createPeerConnection({
+        onIceCandidate: (candidate) => {
+          socket?.emit("webrtc_ice_candidate", {
+            callId,
+            candidate,
+          });
+        },
+      });
+
+      stream.getTracks().forEach((track) => {
+        peer.addTrack(track, stream);
+      });
+
+      const offer = await peer.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: false,
+      });
+
+      await peer.setLocalDescription(offer);
+
+      socket?.emit("start_call", {
+        callId,
+        number: resolvedNumber,
+        customer: lead || null,
+      });
+
+      socket?.emit("webrtc_offer", {
+        callId,
+        number: resolvedNumber,
+        customer: lead || null,
+        offer,
+      });
+
+      set({
+        agentAvailability: "On Call",
+        isCalling: false,
+        callingNumber: "",
+        dialedNumber: "",
+        activeCall: {
+          id: callId,
+          leadId: lead?.id ?? null,
+          name: lead?.name ?? "Unknown Caller",
+          company: lead?.company ?? "Manual Dial",
+          number: resolvedNumber,
+          startedAt: Date.now(),
+          muted: false,
+          onHold: false,
+          transport: "webrtc",
+        },
+      });
+    } catch (error) {
+      closePeerConnection();
+      stopLocalStream();
+
+      set({
+        activeCall: null,
+        agentAvailability: "Available",
+        isCalling: false,
+        callingNumber: "",
+        callError: error.message || "Unable to start WebRTC call",
+      });
+
+      get().pushActivity({
+        type: "status",
+        text: "Microphone permission is required before starting a WebRTC call",
+        time: "Just now",
+      });
+
+      throw error;
+    }
   },
 
   endCall: () => {
     const socket = getSocket();
+    const activeCall = get().activeCall;
 
     socket?.emit("end_call");
+    socket?.emit("webrtc_call_ended", {
+      callId: activeCall?.id,
+    });
+
+    closePeerConnection();
+    stopLocalStream();
 
     const state = get();
     set({
       activeCall: null,
       isCalling: false,
       callingNumber: "",
+      callError: "",
       agentAvailability: "Available",
       activityFeed: [
         {
@@ -187,14 +264,41 @@ export const useStore = create((set, get) => ({
     });
   },
 
+  clearWebRtcCall: () => {
+    closePeerConnection();
+    stopLocalStream();
+
+    set({
+      activeCall: null,
+      isCalling: false,
+      callingNumber: "",
+      callError: "",
+      agentAvailability: "Available",
+    });
+  },
+
   toggleMute: () =>
-    set((state) => ({
-      activeCall: state.activeCall ? { ...state.activeCall, muted: !state.activeCall.muted } : null,
-    })),
+    set((state) => {
+      if (!state.activeCall) return { activeCall: null };
+
+      const muted = !state.activeCall.muted;
+      setMicrophoneEnabled(!muted && !state.activeCall.onHold);
+
+      return {
+        activeCall: { ...state.activeCall, muted },
+      };
+    }),
   toggleHold: () =>
-    set((state) => ({
-      activeCall: state.activeCall ? { ...state.activeCall, onHold: !state.activeCall.onHold } : null,
-    })),
+    set((state) => {
+      if (!state.activeCall) return { activeCall: null };
+
+      const onHold = !state.activeCall.onHold;
+      setMicrophoneEnabled(!onHold && !state.activeCall.muted);
+
+      return {
+        activeCall: { ...state.activeCall, onHold },
+      };
+    }),
   updateLeadStatus: (leadId, status) =>
     set((state) => ({
       leads: state.leads.map((lead) =>
@@ -316,38 +420,22 @@ export const useStore = create((set, get) => ({
   },
 
   makeRealCall: async (phoneNumber) => {
-    const state = get();
-    const lead = state.leads.find((item) => item.phone === phoneNumber);
-
     set({
       isCalling: true,
       callingNumber: phoneNumber,
+      callError: "",
     });
 
     try {
       const response = await placeOutboundCall(phoneNumber);
-
-      set({
-        agentAvailability: "On Call",
-        isCalling: false,
-        callingNumber: "",
-        dialedNumber: "",
-        activeCall: {
-          leadId: lead?.id ?? null,
-          name: lead?.name ?? phoneNumber,
-          company: lead?.company ?? "Manual Dial",
-          number: phoneNumber,
-          startedAt: Date.now(),
-          muted: false,
-          onHold: false,
-        },
-      });
+      await get().startCall({ number: phoneNumber });
 
       return response.data;
     } catch (error) {
       set({
         isCalling: false,
         callingNumber: "",
+        callError: error.message || "Unable to place call",
       });
       throw error;
     }

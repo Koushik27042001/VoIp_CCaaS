@@ -1,6 +1,5 @@
 import mockCalls from "../../data/mockCalls.js";
-
-const USE_MOCK = process.env.USE_MOCK === "true";
+import { isMockMode } from "../../config/env.js";
 
 // helper → filter today calls
 const isToday = (date) => {
@@ -23,7 +22,7 @@ const formatDuration = (seconds) => {
 
 export const getTodayAnalytics = async (req, res) => {
   try {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       const todayCalls = mockCalls.filter((c) => isToday(c.startTime));
 
       const total = todayCalls.length;
@@ -80,7 +79,7 @@ export const getAgentAnalytics = async (req, res) => {
   try {
     const { agentId } = req.params;
 
-    if (USE_MOCK) {
+    if (isMockMode()) {
       const calls = mockCalls.filter((c) => c.agentId === agentId);
 
       const total = calls.length;

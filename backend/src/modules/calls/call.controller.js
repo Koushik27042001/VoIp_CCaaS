@@ -1,15 +1,14 @@
 import { getIO } from "../../socket.js";
 import mockCalls from "../../data/mockCalls.js";
 import mockCustomers from "../../data/mockCustomers.js";
-
-const USE_MOCK = process.env.USE_MOCK === "true";
+import { isMockMode } from "../../config/env.js";
 
 export const makeCall = async (req, res) => {
   try {
     const { phone } = req.body;
     const agentId = req.user?.id || "agent1";
 
-    if (!USE_MOCK) {
+    if (!isMockMode()) {
       // Future: Integrate with Twilio
       return res.status(501).json({ message: "Real calls not implemented yet" });
     }
@@ -67,7 +66,7 @@ export const makeCall = async (req, res) => {
 // 📄 Get Call History API
 export const getCallHistory = async (req, res) => {
   try {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       return res.json(mockCalls.reverse());
     }
 
@@ -84,7 +83,7 @@ export const addCallNote = async (req, res) => {
     const { id } = req.params;
     const { notes, disposition } = req.body;
 
-    if (USE_MOCK) {
+    if (isMockMode()) {
       const call = mockCalls.find((c) => c._id == id);
 
       if (!call) {

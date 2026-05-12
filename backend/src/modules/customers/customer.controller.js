@@ -1,13 +1,12 @@
 import Customer from "../../models/Customer.js";
 import mockCustomers from "../../data/mockCustomers.js";
 import { getIO } from "../../socket.js";
-
-const USE_MOCK = process.env.USE_MOCK === "true";
+import { isMockMode } from "../../config/env.js";
 
 // ➕ Create Customer
 export const createCustomer = async (req, res) => {
   try {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       const customer = {
         _id: mockCustomers.length + 1,
         ...req.body,
@@ -30,7 +29,7 @@ export const getCustomerByPhone = async (req, res) => {
   try {
     const { phone } = req.params;
 
-    if (USE_MOCK) {
+    if (isMockMode()) {
       const customer = mockCustomers.find((c) => c.phone === phone);
 
       if (!customer) {
@@ -55,7 +54,7 @@ export const getCustomerByPhone = async (req, res) => {
 // 📄 Get All Customers
 export const getCustomers = async (req, res) => {
   try {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       return res.json(mockCustomers.sort((a, b) => b.createdAt - a.createdAt));
     }
 
@@ -69,7 +68,7 @@ export const getCustomers = async (req, res) => {
 // ✏️ Update Customer
 export const updateCustomer = async (req, res) => {
   try {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       const customer = mockCustomers.find((c) => c._id == req.params.id);
 
       if (!customer) {
@@ -112,7 +111,7 @@ export const searchCustomers = async (req, res) => {
   try {
     const { query } = req.query;
 
-    if (USE_MOCK) {
+    if (isMockMode()) {
       const results = mockCustomers.filter((c) =>
         c.name.toLowerCase().includes(query.toLowerCase())
       );
