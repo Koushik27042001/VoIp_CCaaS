@@ -5,10 +5,12 @@ import CRMPanel from "../components/CRMPanel";
 import Dialer from "../components/Dialer";
 import LeadPanel from "../components/LeadPanel";
 import Sidebar from "../components/Sidebar";
+import SIPTrunkPage from "./settings/SIPTrunkPage";
 import { useStore } from "../store/useStore";
 
 export default function Dashboard() {
   const activeView = useStore((state) => state.activeView);
+  const isSettingsView = activeView === "sip-trunks";
 
   return (
     <div className="app-shell">
@@ -28,23 +30,26 @@ export default function Dashboard() {
             </div>
           </header>
 
-          {/* Section 1: Metrics & AI Action */}
-          <section className="dashboard-top-section">
-             <Analytics />
-          </section>
+          {isSettingsView ? (
+            <SIPTrunkPage />
+          ) : (
+            <>
+              <section className="dashboard-top-section">
+                <Analytics />
+              </section>
 
-          {/* Section 2: Real-time Presence */}
-          <AgentStatus />
+              <AgentStatus />
 
-          {/* Section 3: Operational Workspace */}
-          <section className="workspace">
-            <div className="dialer-stack">
-              <Dialer />
-              <CallPanel />
-            </div>
-            <LeadPanel />
-            <CRMPanel />
-          </section>
+              <section className="workspace">
+                <div className="dialer-stack">
+                  <Dialer />
+                  <CallPanel />
+                </div>
+                <LeadPanel />
+                <CRMPanel />
+              </section>
+            </>
+          )}
         </div>
       </main>
     </div>

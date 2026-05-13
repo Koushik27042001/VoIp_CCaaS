@@ -5,6 +5,7 @@ import authRoutes from "./modules/auth/auth.routes.js";
 import customerRoutes from "./modules/customers/customer.routes.js";
 import callRoutes from "./modules/calls/call.routes.js";
 import analyticsRoutes from "./modules/analytics/analytics.routes.js";
+import sipTrunkRoutes from "./modules/sipTrunks/sipTrunk.routes.js";
 import { errorHandler, notFound } from "./middlewares/error.middleware.js";
 
 const app = express();
@@ -19,6 +20,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/calls", callRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/sip-trunks", sipTrunkRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {

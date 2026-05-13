@@ -27,10 +27,10 @@ export const initSocket = () => {
   }
 
   const socket = io(SOCKET_URL, {
-    transports: ["websocket"],
     reconnection: true,
     reconnectionAttempts: Infinity,
-    reconnectionDelay: 1000,
+    reconnectionDelay: 1500,
+    reconnectionDelayMax: 8000,
     autoConnect: true,
   });
 
@@ -44,7 +44,7 @@ export const initSocket = () => {
     });
 
     socket.on("connect_error", (error) => {
-      console.error("Socket connection error:", error.message);
+      console.warn("Socket connection pending:", error.message);
     });
 
     globalThis[LISTENERS_KEY] = true;

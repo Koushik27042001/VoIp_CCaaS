@@ -1,17 +1,26 @@
 import "./config/env.js";
 import http from "http";
 import app from "./app.js";
+import { connectDB } from "./config/db.js";
+import { isMockMode } from "./config/env.js";
 import { initSocket } from "./socket.js";
 
 const server = http.createServer(app);
 
-// Initialize socket
 initSocket(server);
 
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Mode: ${process.env.USE_MOCK === "true" ? "MOCK" : "PRODUCTION"}`);
-  console.log(`🔌 Socket.io ready for real-time events`);
-});
+const startServer = async () => {
+  if (!isMockMode()) {
+    await connectDB();
+  }
+
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Mode: ${isMockMode() ? "MOCK" : "PRODUCTION"}`);
+    console.log("Socket.io ready for real-time events");
+  });
+};
+
+startServer();

@@ -1100,6 +1100,208 @@ svg {
   text-align: center;
 }
 
+.settings-page {
+  padding: 0 22px 22px;
+}
+
+.settings-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+  border: 1px solid var(--bd);
+  border-radius: var(--r);
+  background: rgba(15, 17, 26, 0.94);
+  padding: 16px;
+}
+
+.settings-header h2 {
+  color: var(--t1);
+  font-size: 22px;
+}
+
+.settings-header p:not(.eyebrow) {
+  max-width: 680px;
+  color: var(--t2);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: 5px;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.92fr) minmax(0, 1.08fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.sip-form,
+.trunk-list-panel {
+  min-width: 0;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.form-grid label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-grid label span,
+.toggle-row label {
+  color: var(--t3);
+  font-family: var(--m);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.form-grid input,
+.form-grid select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  outline: none;
+  background: var(--b2);
+  color: var(--t1);
+  padding: 9px 10px;
+}
+
+.form-grid input:disabled {
+  color: var(--t3);
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.form-grid input:focus,
+.form-grid select:focus {
+  border-color: rgba(124, 58, 237, 0.48);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+.toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.toggle-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  background: var(--b2);
+  padding: 9px 10px;
+  cursor: pointer;
+}
+
+.toggle-row input {
+  accent-color: var(--ac);
+}
+
+.form-alert {
+  margin-top: 12px;
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 10px;
+}
+
+.form-alert.error {
+  border-color: rgba(239, 68, 68, 0.28);
+  background: var(--rdd);
+  color: #fecaca;
+}
+
+.form-alert.success {
+  border-color: rgba(16, 185, 129, 0.28);
+  background: var(--gnd);
+  color: #bbf7d0;
+}
+
+.compact-button {
+  flex: 0 0 auto;
+  min-height: 36px;
+}
+
+.trunk-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.trunk-card {
+  border: 1px solid var(--bd);
+  border-radius: 11px;
+  background: var(--b2);
+  padding: 12px;
+}
+
+.trunk-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.trunk-card-head h3 {
+  color: var(--t1);
+  font-size: 15px;
+}
+
+.trunk-card-head p {
+  color: var(--t3);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.trunk-card-head .pill {
+  margin-left: auto;
+}
+
+.trunk-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.trunk-meta-grid > div {
+  min-width: 0;
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  background: var(--b1);
+  padding: 10px;
+}
+
+.trunk-meta-grid strong {
+  display: block;
+  overflow: hidden;
+  color: var(--t1);
+  font-family: var(--m);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trunk-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 @media (max-width: 1280px) {
   .analytics-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1111,6 +1313,10 @@ svg {
 
   .workspace {
     grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
   }
 
   .crm-panel {
@@ -1187,6 +1393,10 @@ svg {
     grid-template-columns: 1fr;
   }
 
+  .settings-header {
+    flex-direction: column;
+  }
+
   .creative-card {
     grid-column: auto;
   }
@@ -1226,6 +1436,8 @@ svg {
 
   .call-meta,
   .detail-grid,
+  .form-grid,
+  .trunk-meta-grid,
   .dialer-actions,
   .action-row {
     grid-template-columns: 1fr;

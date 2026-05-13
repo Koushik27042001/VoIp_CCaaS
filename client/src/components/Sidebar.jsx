@@ -39,9 +39,14 @@ export default function Sidebar() {
         </nav>
       </div>
 
-      <button className="sidebar-button settings-button" type="button" aria-label="Settings">
+      <button
+        className={`sidebar-button settings-button ${activeView === "sip-trunks" ? "active" : ""}`}
+        type="button"
+        aria-label="SIP Trunks"
+        onClick={() => setActiveView("sip-trunks")}
+      >
         <Settings size={18} strokeWidth={2.25} />
-        <span>Settings</span>
+        <span>SIP Trunks</span>
       </button>
     </aside>
   );
