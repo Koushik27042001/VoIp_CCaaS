@@ -26,3 +26,15 @@ export const deleteSipTrunk = (id) =>
 
 export const regenerateSipTrunkConfig = () =>
   API.post("/sip-trunks/regenerate-config");
+
+export const fetchTelecomStatus = () =>
+  API.get("/telecom/status");
+
+export const fetchTrunkHealth = () =>
+  API.get("/telecom/trunk-health");
+
+export const fetchSipRuntimePlan = () =>
+  API.get("/telecom/sip-runtime-plan");
+
+export const generateSipRuntimeConfig = () =>
+  API.post("/telecom/generate-runtime-config");

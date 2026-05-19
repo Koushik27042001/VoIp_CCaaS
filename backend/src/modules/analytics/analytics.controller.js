@@ -1,7 +1,11 @@
+import mongoose from "mongoose";
 import mockCalls from "../../data/mockCalls.js";
 import { isMockMode } from "../../config/env.js";
+import {
+  getAgentCallAnalytics,
+  getTodayCallAnalytics,
+} from "../../services/analyticsService.js";
 
-// helper → filter today calls
 const isToday = (date) => {
   const today = new Date();
   const d = new Date(date);
@@ -20,28 +24,15 @@ const formatDuration = (seconds) => {
   return `${String(minutes).padStart(2, "0")}:${String(remaining).padStart(2, "0")}`;
 };
 
-export const getTodayAnalytics = async (req, res) => {
+export const getTodayAnalytics = async (req, res, next) => {
   try {
     if (isMockMode()) {
       const todayCalls = mockCalls.filter((c) => isToday(c.startTime));
-
       const total = todayCalls.length;
-
-      const completed = todayCalls.filter(
-        (c) => c.disposition === "completed"
-      ).length;
-
-      const missed = todayCalls.filter((c) => c.disposition === "missed")
-        .length;
-
-      const failed = todayCalls.filter((c) => c.disposition === "failed")
-        .length;
-
-      const totalDuration = todayCalls.reduce(
-        (acc, c) => acc + (c.duration || 0),
-        0
-      );
-
+      const completed = todayCalls.filter((c) => c.disposition === "completed").length;
+      const missed = todayCalls.filter((c) => c.disposition === "missed").length;
+      const failed = todayCalls.filter((c) => c.disposition === "failed").length;
+      const totalDuration = todayCalls.reduce((acc, c) => acc + (c.duration || 0), 0);
       const avgDuration = total > 0 ? Math.floor(totalDuration / total) : 0;
 
       return res.json({
@@ -57,50 +48,36 @@ export const getTodayAnalytics = async (req, res) => {
       });
     }
 
-    // Future: Get from database
-    res.json({
-      total: 0,
-      completed: 0,
-      missed: 0,
-      failed: 0,
-      avgDuration: 0,
-      callsHandled: 0,
-      conversionRate: 0,
-      avgHandleTime: "00:00",
-      csat: 0,
-    });
+    res.json(await getTodayCallAnalytics());
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 
-// Get Agent Analytics
-export const getAgentAnalytics = async (req, res) => {
+export const getAgentAnalytics = async (req, res, next) => {
   try {
     const { agentId } = req.params;
 
     if (isMockMode()) {
       const calls = mockCalls.filter((c) => c.agentId === agentId);
-
       const total = calls.length;
-
-      const completed = calls.filter((c) => c.disposition === "completed")
-        .length;
-
+      const completed = calls.filter((c) => c.disposition === "completed").length;
       const totalDuration = calls.reduce((acc, c) => acc + (c.duration || 0), 0);
-
-      const avgDuration = total > 0 ? Math.floor(totalDuration / total) : 0;
 
       return res.json({
         agentId,
         total,
         completed,
-        avgDuration,
+        avgDuration: total > 0 ? Math.floor(totalDuration / total) : 0,
       });
     }
 
-    res.status(501).json({ message: "Not implemented yet" });
+    if (!mongoose.Types.ObjectId.isValid(agentId)) {
+      return res.status(400).json({ message: "Invalid agentId" });
+    }
+
+    res.json(await getAgentCallAnalytics(new mongoose.Types.ObjectId(agentId)));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };

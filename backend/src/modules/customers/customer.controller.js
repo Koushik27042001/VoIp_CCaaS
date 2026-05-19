@@ -1,10 +1,15 @@
-import Customer from "../../models/Customer.js";
 import mockCustomers from "../../data/mockCustomers.js";
-import { getIO } from "../../socket.js";
 import { isMockMode } from "../../config/env.js";
+import {
+  createCustomerRecord,
+  getCustomerByPhoneNumber,
+  listCustomers,
+  searchCustomerRecords,
+  updateCustomerRecord,
+} from "../../services/crmService.js";
+import { emitRealtimeEvent, REALTIME_EVENTS } from "../../events/realtime.events.js";
 
-// ➕ Create Customer
-export const createCustomer = async (req, res) => {
+export const createCustomer = async (req, res, next) => {
   try {
     if (isMockMode()) {
       const customer = {
@@ -17,29 +22,25 @@ export const createCustomer = async (req, res) => {
       return res.status(201).json(customer);
     }
 
-    const customer = await Customer.create(req.body);
+    const customer = await createCustomerRecord(req.body);
     res.status(201).json(customer);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 
-// 🔍 Get by Phone (VERY IMPORTANT for calls)
-export const getCustomerByPhone = async (req, res) => {
+export const getCustomerByPhone = async (req, res, next) => {
   try {
     const { phone } = req.params;
 
     if (isMockMode()) {
       const customer = mockCustomers.find((c) => c.phone === phone);
-
-      if (!customer) {
-        return res.status(404).json({ message: "Customer not found" });
-      }
-
-      return res.json(customer);
+      return customer
+        ? res.json(customer)
+        : res.status(404).json({ message: "Customer not found" });
     }
 
-    const customer = await Customer.findOne({ phone });
+    const customer = await getCustomerByPhoneNumber(phone);
 
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
@@ -47,26 +48,30 @@ export const getCustomerByPhone = async (req, res) => {
 
     res.json(customer);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 
-// 📄 Get All Customers
-export const getCustomers = async (req, res) => {
+export const getCustomers = async (req, res, next) => {
   try {
+    const query = req.validated?.query || req.query;
+
     if (isMockMode()) {
-      return res.json(mockCustomers.sort((a, b) => b.createdAt - a.createdAt));
+      return res.json(
+        [...mockCustomers]
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, query.limit || 50)
+      );
     }
 
-    const customers = await Customer.find().sort({ createdAt: -1 });
+    const customers = await listCustomers(query);
     res.json(customers);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 
-// ✏️ Update Customer
-export const updateCustomer = async (req, res) => {
+export const updateCustomer = async (req, res, next) => {
   try {
     if (isMockMode()) {
       const customer = mockCustomers.find((c) => c._id == req.params.id);
@@ -77,54 +82,42 @@ export const updateCustomer = async (req, res) => {
 
       Object.assign(customer, req.body);
       customer.updatedAt = new Date();
-      try {
-        const io = getIO();
-        io.emit("lead_updated", customer);
-      } catch {
-        // Socket server may not be initialized in some test contexts.
-      }
-
+      emitRealtimeEvent(REALTIME_EVENTS.LEAD_UPDATED, customer);
       return res.json(customer);
     }
 
-    const updated = await Customer.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
+    const updated = await updateCustomerRecord(req.params.id, req.body);
 
-    try {
-      const io = getIO();
-      io.emit("lead_updated", updated);
-    } catch {
-      // Socket server may not be initialized in some test contexts.
+    if (!updated) {
+      return res.status(404).json({ message: "Customer not found" });
     }
 
     res.json(updated);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 
-// 🔎 Search (for CRM search bar)
-export const searchCustomers = async (req, res) => {
+export const searchCustomers = async (req, res, next) => {
   try {
-    const { query } = req.query;
+    const { query, limit = 20 } = req.validated?.query || req.query;
 
     if (isMockMode()) {
-      const results = mockCustomers.filter((c) =>
-        c.name.toLowerCase().includes(query.toLowerCase())
-      );
+      const lowered = query.toLowerCase();
+      const results = mockCustomers
+        .filter((c) => {
+          return [c.name, c.phone, c.email, c.company]
+            .filter(Boolean)
+            .some((value) => value.toLowerCase().includes(lowered));
+        })
+        .slice(0, limit);
 
       return res.json(results);
     }
 
-    const results = await Customer.find({
-      $text: { $search: query },
-    });
-
+    const results = await searchCustomerRecords({ query, limit });
     res.json(results);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };

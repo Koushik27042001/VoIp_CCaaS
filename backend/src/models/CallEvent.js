@@ -9,7 +9,16 @@ const callEventSchema = new mongoose.Schema(
     },
     eventType: {
       type: String,
-      enum: ["ringing", "connected", "ended", "transferred", "hold"],
+      enum: [
+        "initiated",
+        "ringing",
+        "connected",
+        "ended",
+        "failed",
+        "transferred",
+        "hold",
+        "note_added",
+      ],
       required: true,
     },
     timestamp: {
@@ -20,5 +29,8 @@ const callEventSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+callEventSchema.index({ callId: 1, timestamp: -1 });
+callEventSchema.index({ eventType: 1, timestamp: -1 });
 
 export default mongoose.model("CallEvent", callEventSchema);

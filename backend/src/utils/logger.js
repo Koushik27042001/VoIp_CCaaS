@@ -1,25 +1,11 @@
-// Simple logger utility
-export const logger = {
-  info: (message) => {
-    console.log(`[INFO] ${new Date().toISOString()} - ${message}`);
-  },
+import pino from "pino";
 
-  error: (message, error) => {
-    console.error(
-      `[ERROR] ${new Date().toISOString()} - ${message}`,
-      error || ""
-    );
-  },
-
-  warn: (message) => {
-    console.warn(`[WARN] ${new Date().toISOString()} - ${message}`);
-  },
-
-  debug: (message) => {
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[DEBUG] ${new Date().toISOString()} - ${message}`);
-    }
-  },
-};
+export const logger = pino({
+  level:
+    process.env.LOG_LEVEL ||
+    (process.env.NODE_ENV === "production" ? "info" : "debug"),
+  base: undefined,
+  timestamp: pino.stdTimeFunctions.isoTime,
+});
 
 export default logger;

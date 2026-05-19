@@ -9,7 +9,7 @@ export default function CallPanel() {
   const callingNumber = useStore((state) => state.callingNumber);
   const toggleMute = useStore((state) => state.toggleMute);
   const toggleHold = useStore((state) => state.toggleHold);
-  const endCall = useStore((state) => state.endCall);
+  const endTelecomCall = useStore((state) => state.endTelecomCall);
   const getActiveCallDuration = useStore((state) => state.getActiveCallDuration);
   const [duration, setDuration] = useState("00:00");
 
@@ -85,7 +85,7 @@ export default function CallPanel() {
           <Volume2 size={15} />
           Monitor
         </button>
-        <button className="danger-button" type="button" onClick={endCall}>
+        <button className="danger-button" type="button" onClick={endTelecomCall}>
           <PhoneOff size={15} />
           End
         </button>

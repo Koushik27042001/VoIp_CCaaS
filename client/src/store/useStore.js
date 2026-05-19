@@ -15,6 +15,9 @@ import {
   closePeerConnection,
   createPeerConnection,
 } from "../webrtc/peer";
+import { getSipConfig } from "../sip/sipConfig";
+import { placeSipCall, hangupSipCall } from "../sip/callHandler";
+import { startSipRegistration, stopSipRegistration } from "../sip/registerAgent";
 
 const leadSeeds = [
   {
@@ -105,6 +108,8 @@ export const useStore = create((set, get) => ({
   ],
   backendOnline: null,
   backendStatusMessage: "Checking backend...",
+  sipStatus: "disabled",
+  sipError: "",
   callError: "",
   leadsLoading: false,
   leadsError: "",
@@ -277,6 +282,46 @@ export const useStore = create((set, get) => ({
     });
   },
 
+  registerSipAgent: async () => {
+    const config = getSipConfig();
+
+    if (!config.enabled) {
+      set({ sipStatus: "disabled", sipError: "" });
+      return false;
+    }
+
+    set({ sipStatus: "registering", sipError: "" });
+
+    try {
+      await startSipRegistration({
+        registered: () => set({ sipStatus: "registered", sipError: "" }),
+        incomingCall: () => {
+          set({ sipStatus: "incoming" });
+          get().pushActivity({
+            type: "call",
+            text: "Incoming SIP call from Asterisk",
+            time: "Just now",
+          });
+        },
+        callEstablished: () => set({ sipStatus: "in-call" }),
+        callTerminated: () => set({ sipStatus: "registered" }),
+      });
+      set({ sipStatus: "registered", sipError: "" });
+      return true;
+    } catch (error) {
+      set({
+        sipStatus: "failed",
+        sipError: error.message || "SIP registration failed",
+      });
+      throw error;
+    }
+  },
+
+  unregisterSipAgent: async () => {
+    await stopSipRegistration();
+    set({ sipStatus: "disabled", sipError: "" });
+  },
+
   toggleMute: () =>
     set((state) => {
       if (!state.activeCall) return { activeCall: null };
@@ -428,7 +473,34 @@ export const useStore = create((set, get) => ({
 
     try {
       const response = await placeOutboundCall(phoneNumber);
-      await get().startCall({ number: phoneNumber });
+      const sipConfig = getSipConfig();
+
+      if (sipConfig.enabled) {
+        await placeSipCall(phoneNumber, {
+          callEstablished: () => set({ sipStatus: "in-call" }),
+          callTerminated: () => set({ sipStatus: "registered" }),
+        });
+
+        set({
+          agentAvailability: "On Call",
+          isCalling: false,
+          callingNumber: "",
+          dialedNumber: "",
+          activeCall: {
+            id: response.data?.call?.callId || `${Date.now()}-sip`,
+            leadId: null,
+            name: phoneNumber,
+            company: "SIP/Asterisk",
+            number: phoneNumber,
+            startedAt: Date.now(),
+            muted: false,
+            onHold: false,
+            transport: "sip",
+          },
+        });
+      } else {
+        await get().startCall({ number: phoneNumber });
+      }
 
       return response.data;
     } catch (error) {
@@ -439,5 +511,15 @@ export const useStore = create((set, get) => ({
       });
       throw error;
     }
+  },
+
+  endTelecomCall: async () => {
+    const activeCall = get().activeCall;
+
+    if (activeCall?.transport === "sip") {
+      await hangupSipCall();
+    }
+
+    get().endCall();
   },
 }));
