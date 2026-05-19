@@ -1,105 +1,93 @@
-import { getIO } from "../../socket.js";
-import mockCalls from "../../data/mockCalls.js";
-import mockCustomers from "../../data/mockCustomers.js";
+import { asyncHandler } from "../../middlewares/async.middleware.js";
+import { AppError } from "../../middlewares/error.middleware.js";
+import * as callRepo from "../../repositories/call.repository.js";
+import * as customerRepo from "../../repositories/customer.repository.js";
+import { dialOutbound } from "../../services/outboundCall.service.js";
+import {
+  emitCallStarted,
+  emitCallEnded,
+  emitCallFailed,
+} from "../../events/call.events.js";
+import logger from "../../telemetry/logger.js";
 
-const USE_MOCK = process.env.USE_MOCK === "true";
+const normalizePhone = (phone) => phone.replace(/[\s-]/g, "").trim();
 
-export const makeCall = async (req, res) => {
+export const makeCall = asyncHandler(async (req, res) => {
+  const { phone } = req.body;
+  const agentId = req.user.id;
+  const normalizedPhone = normalizePhone(phone);
+
+  const customer = await customerRepo.getCustomerByPhone(normalizedPhone);
+  const callId = `call_${Date.now()}_${agentId}`;
+
+  const callRecord = await callRepo.createCall({
+    callId,
+    phone: normalizedPhone,
+    agentId,
+    customerId: customer?._id,
+    status: "ringing",
+  });
+
+  emitCallStarted({
+    callId,
+    phone: normalizedPhone,
+    agentId,
+    status: "ringing",
+  });
+
   try {
-    const { phone } = req.body;
-    const agentId = req.user?.id || "agent1";
-
-    if (!USE_MOCK) {
-      // Future: Integrate with Twilio
-      return res.status(501).json({ message: "Real calls not implemented yet" });
-    }
-
-    const io = getIO();
-    const callId = Date.now().toString();
-
-    // 🔍 Find customer
-    const customer = mockCustomers.find((c) => c.phone === phone);
-
-    // 🧾 Create call log
-    const call = {
-      _id: callId,
-      phone,
+    const result = await dialOutbound({
+      phone: normalizedPhone,
       agentId,
-      customer: customer || null,
-      status: "ringing",
-      duration: 0,
-      startTime: new Date(),
-      endTime: null,
-      notes: "",
-      disposition: "",
-    };
+      callId,
+    });
 
-    mockCalls.push(call);
+    const updated = await callRepo.updateCallByCallId(callId, {
+      provider: result.provider,
+      externalId: result.externalId,
+    });
 
-    console.log("📞 Calling:", phone);
+    logger.info(
+      { callId, provider: result.provider, phone: normalizedPhone },
+      "Outbound call initiated"
+    );
 
-    // 📡 Emit ringing
-    io.emit("call_ringing", call);
-
-    // ⏱ Connected
-    setTimeout(() => {
-      call.status = "connected";
-      console.log("✅ Call connected");
-      io.emit("call_connected", call);
-    }, 2000);
-
-    // ⏱ End call
-    setTimeout(() => {
-      call.status = "ended";
-      call.endTime = new Date();
-      call.duration = Math.floor((call.endTime - call.startTime) / 1000);
-      call.disposition = "completed";
-      console.log("❌ Call ended");
-      io.emit("call_ended", call);
-    }, 8000);
-
-    res.json({ message: "Call started (mock)", callId });
+    res.json({
+      message: "Call initiated",
+      callId,
+      provider: result.provider,
+      call: updated,
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    await callRepo.updateCallByCallId(callId, {
+      status: "ended",
+      disposition: "failed",
+      endTime: new Date(),
+    });
+
+    emitCallFailed({ callId, phone: normalizedPhone, reason: err.message });
+    throw err;
   }
-};
+});
 
-// 📄 Get Call History API
-export const getCallHistory = async (req, res) => {
-  try {
-    if (USE_MOCK) {
-      return res.json(mockCalls.reverse());
-    }
+export const getCallHistory = asyncHandler(async (req, res) => {
+  const calls = await callRepo.listCalls();
+  res.json(calls);
+});
 
-    // Future: Get from database
-    res.json([]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+export const addCallNote = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { notes, disposition } = req.body;
+
+  let call = await callRepo.findCallById(id);
+  if (!call) {
+    call = await callRepo.findCallByCallId(id);
   }
-};
 
-// 📝 Add Notes API
-export const addCallNote = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { notes, disposition } = req.body;
-
-    if (USE_MOCK) {
-      const call = mockCalls.find((c) => c._id == id);
-
-      if (!call) {
-        return res.status(404).json({ message: "Call not found" });
-      }
-
-      call.notes = notes;
-      call.disposition = disposition;
-
-      return res.json(call);
-    }
-
-    // Future: Update in database
-    res.status(501).json({ message: "Not implemented yet" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  if (!call) {
+    throw new AppError("Call not found", 404);
   }
-};
+
+  const updated = await callRepo.updateCall(call._id, { notes, disposition });
+  res.json(updated);
+});

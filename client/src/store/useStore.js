@@ -5,7 +5,10 @@ import {
   fetchCustomers,
   fetchAnalytics,
   placeOutboundCall,
+  fetchSipConfig,
+  reportSipRegistration,
 } from "../api/api";
+import { registerSipAgent, unregisterSipAgent } from "../telecom/sipClient";
 
 const leadSeeds = [
   {
@@ -94,8 +97,10 @@ export const useStore = create((set, get) => ({
     { id: "ac-2", type: "note", text: "Pricing note added to Orbit Retail", time: "12 min ago" },
     { id: "ac-3", type: "status", text: "Priya Nair moved to Closed", time: "1 hr ago" },
   ],
+  sipStatus: "offline",
   backendOnline: null,
   backendStatusMessage: "Checking backend...",
+  socketEventsBound: false,
   leadsLoading: false,
   leadsError: "",
   analytics: {
@@ -315,6 +320,104 @@ export const useStore = create((set, get) => ({
     }
   },
 
+  bindSocketCallEvents: () => {
+    if (get().socketEventsBound) return;
+
+    const socket = getSocket();
+
+    socket.on("call_ringing", (call) => {
+      set({
+        isCalling: true,
+        callingNumber: call.phone,
+        activityFeed: [
+          {
+            id: `${Date.now()}-ring`,
+            type: "call",
+            text: `Ringing ${call.phone}`,
+            time: "Just now",
+          },
+          ...get().activityFeed.slice(0, 5),
+        ],
+      });
+    });
+
+    socket.on("call_connected", (call) => {
+      set({
+        isCalling: false,
+        agentAvailability: "On Call",
+        activeCall: {
+          leadId: null,
+          name: call.phone,
+          company: "Live call",
+          number: call.phone,
+          startedAt: Date.now(),
+          muted: false,
+          onHold: false,
+        },
+      });
+    });
+
+    socket.on("call_ended", () => {
+      set({
+        activeCall: null,
+        isCalling: false,
+        callingNumber: "",
+        agentAvailability: "Available",
+      });
+    });
+
+    set({ socketEventsBound: true });
+  },
+
+  initTelecom: async () => {
+    const token =
+      localStorage.getItem("token") || process.env.REACT_APP_API_TOKEN;
+
+    if (!token || process.env.REACT_APP_AUTO_SIP_REGISTER === "false") {
+      return;
+    }
+
+    try {
+      const res = await fetchSipConfig();
+      const config = res.data.data;
+
+      set({ sipStatus: "registering" });
+
+      await registerSipAgent(config, {
+        onStateChange: async (state) => {
+          const extension = config.extension;
+          let status = "offline";
+
+          if (state === "Registered") {
+            status = "registered";
+          } else if (state === "Unregistered") {
+            status = "unregistered";
+          } else if (state === "Terminated") {
+            status = "failed";
+          }
+
+          set({ sipStatus: status });
+
+          try {
+            await reportSipRegistration({ extension, status });
+          } catch (err) {
+            console.error("SIP registration report failed:", err);
+          }
+        },
+      });
+
+      set({ sipStatus: "registered" });
+    } catch (error) {
+      console.error("SIP registration failed:", error);
+      set({ sipStatus: "failed" });
+    }
+  },
+
+  disconnectTelecom: async () => {
+    await unregisterSipAgent();
+    set({ sipStatus: "offline" });
+  },
+
   makeRealCall: async (phoneNumber) => {
     const state = get();
     const lead = state.leads.find((item) => item.phone === phoneNumber);
@@ -345,9 +448,21 @@ export const useStore = create((set, get) => ({
 
       return response.data;
     } catch (error) {
+      const message =
+        error.response?.data?.message || error.message || "Call failed";
+
       set({
         isCalling: false,
         callingNumber: "",
+        activityFeed: [
+          {
+            id: `${Date.now()}-fail`,
+            type: "call",
+            text: message,
+            time: "Just now",
+          },
+          ...get().activityFeed.slice(0, 5),
+        ],
       });
       throw error;
     }

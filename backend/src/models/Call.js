@@ -42,6 +42,12 @@ const callSchema = new mongoose.Schema(
       enum: ["completed", "missed", "failed"],
       default: "",
     },
+    provider: {
+      type: String,
+      enum: ["twilio", "asterisk", ""],
+      default: "",
+    },
+    externalId: String,
   },
   { timestamps: true }
 );

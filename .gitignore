@@ -11,4 +11,6 @@
 *.ntvs*
 *.njsproj
 *.sln
-*.sw? 
+*.sw?
+/coverage
+/.cache

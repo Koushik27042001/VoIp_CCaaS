@@ -2,18 +2,27 @@ import dotenv from "dotenv";
 import http from "http";
 import app from "./app.js";
 import { initSocket } from "./socket.js";
+import { connectDB } from "./config/db.js";
+import { registerEventListeners } from "./events/index.js";
+import logger from "./telemetry/logger.js";
 
 dotenv.config();
 
-const server = http.createServer(app);
+const startServer = async () => {
+  await connectDB();
+  registerEventListeners();
 
-// Initialize socket
-initSocket(server);
+  const server = http.createServer(app);
+  initSocket(server);
 
-const PORT = process.env.PORT || 5000;
+  const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Mode: ${process.env.USE_MOCK === "true" ? "MOCK" : "PRODUCTION"}`);
-  console.log(`🔌 Socket.io ready for real-time events`);
+  server.listen(PORT, () => {
+    logger.info({ port: PORT, env: process.env.NODE_ENV }, "Server started");
+  });
+};
+
+startServer().catch((err) => {
+  logger.fatal({ err }, "Failed to start server");
+  process.exit(1);
 });

@@ -1,0 +1,16 @@
+services:
+  asterisk:
+    image: andrius/asterisk:18-current
+    container_name: voip-asterisk
+    ports:
+      - "5060:5060/udp"
+      - "5038:5038"
+      - "8088:8088"
+      - "8089:8089"
+      - "10000-10100:10000-10100/udp"
+    volumes:
+      - ./backend/src/infrastructure/asterisk/pjsip.conf:/etc/asterisk/pjsip.conf
+      - ./backend/src/infrastructure/asterisk/extensions.conf:/etc/asterisk/extensions.conf
+      - ./backend/src/infrastructure/asterisk/http.conf:/etc/asterisk/http.conf
+      - ./backend/src/infrastructure/asterisk/manager.conf:/etc/asterisk/asterisk.manager.conf
+    restart: unless-stopped

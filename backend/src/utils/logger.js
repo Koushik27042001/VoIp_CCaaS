@@ -1,25 +1,18 @@
-// Simple logger utility
+/**
+ * @deprecated Import from ../telemetry/logger.js instead.
+ * Kept for backward compatibility with existing imports.
+ */
+import telemetryLogger from "../telemetry/logger.js";
+
 export const logger = {
-  info: (message) => {
-    console.log(`[INFO] ${new Date().toISOString()} - ${message}`);
-  },
-
-  error: (message, error) => {
-    console.error(
-      `[ERROR] ${new Date().toISOString()} - ${message}`,
-      error || ""
-    );
-  },
-
-  warn: (message) => {
-    console.warn(`[WARN] ${new Date().toISOString()} - ${message}`);
-  },
-
-  debug: (message) => {
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[DEBUG] ${new Date().toISOString()} - ${message}`);
-    }
-  },
+  info: (message, meta) => telemetryLogger.info(meta ?? {}, message),
+  error: (message, error) =>
+    telemetryLogger.error(
+      { err: error instanceof Error ? error : undefined },
+      message
+    ),
+  warn: (message, meta) => telemetryLogger.warn(meta ?? {}, message),
+  debug: (message, meta) => telemetryLogger.debug(meta ?? {}, message),
 };
 
-export default logger;
+export default telemetryLogger;

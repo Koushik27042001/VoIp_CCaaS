@@ -1,30 +1,41 @@
 import express from "express";
 import cors from "cors";
 import authRoutes from "./modules/auth/auth.routes.js";
+import userRoutes from "./modules/users/user.routes.js";
 import customerRoutes from "./modules/customers/customer.routes.js";
 import callRoutes from "./modules/calls/call.routes.js";
 import analyticsRoutes from "./modules/analytics/analytics.routes.js";
+import sipRoutes from "./modules/sip/sip.routes.js";
+import webhookRoutes from "./modules/webhooks/webhook.routes.js";
 import { errorHandler, notFound } from "./middlewares/error.middleware.js";
+import { metrics } from "./telemetry/metrics.js";
+import { getTelecomStatus } from "./services/outboundCall.service.js";
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/calls", callRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/sip", sipRoutes);
+app.use("/api/webhooks", webhookRoutes);
 
-// Health check
 app.get("/api/health", (req, res) => {
-  res.json({ status: "✅ Server is running" });
+  res.json({
+    status: "ok",
+    uptime: process.uptime(),
+    telecom: getTelecomStatus(),
+    ...(process.env.NODE_ENV !== "production" && {
+      metrics: metrics.snapshot(),
+    }),
+  });
 });
 
-// Error handling
 app.use(notFound);
 app.use(errorHandler);
 

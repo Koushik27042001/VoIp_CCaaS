@@ -1,131 +1,61 @@
-import Customer from "../../models/Customer.js";
-import mockCustomers from "../../data/mockCustomers.js";
 import { getIO } from "../../socket.js";
+import { asyncHandler } from "../../middlewares/async.middleware.js";
+import { AppError } from "../../middlewares/error.middleware.js";
+import * as customerRepo from "../../repositories/customer.repository.js";
 
-const USE_MOCK = process.env.USE_MOCK === "true";
-
-// ➕ Create Customer
-export const createCustomer = async (req, res) => {
+const emitLeadUpdated = (customer) => {
   try {
-    if (USE_MOCK) {
-      const customer = {
-        _id: mockCustomers.length + 1,
-        ...req.body,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      mockCustomers.push(customer);
-      return res.status(201).json(customer);
-    }
+    getIO().emit("lead_updated", customer);
+  } catch {
+    // Socket may be unavailable in tests
+  }
+};
 
-    const customer = await Customer.create(req.body);
+const handleDuplicateKey = (err) => {
+  if (err?.code === 11000) {
+    throw new AppError("Customer with this phone already exists", 409);
+  }
+  throw err;
+};
+
+export const createCustomer = asyncHandler(async (req, res) => {
+  try {
+    const customer = await customerRepo.createCustomer(req.body);
     res.status(201).json(customer);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleDuplicateKey(err);
   }
-};
+});
 
-// 🔍 Get by Phone (VERY IMPORTANT for calls)
-export const getCustomerByPhone = async (req, res) => {
-  try {
-    const { phone } = req.params;
+export const getCustomerByPhone = asyncHandler(async (req, res) => {
+  const { phone } = req.params;
+  const customer = await customerRepo.getCustomerByPhone(phone);
 
-    if (USE_MOCK) {
-      const customer = mockCustomers.find((c) => c.phone === phone);
-
-      if (!customer) {
-        return res.status(404).json({ message: "Customer not found" });
-      }
-
-      return res.json(customer);
-    }
-
-    const customer = await Customer.findOne({ phone });
-
-    if (!customer) {
-      return res.status(404).json({ message: "Customer not found" });
-    }
-
-    res.json(customer);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  if (!customer) {
+    throw new AppError("Customer not found", 404);
   }
-};
 
-// 📄 Get All Customers
-export const getCustomers = async (req, res) => {
-  try {
-    if (USE_MOCK) {
-      return res.json(mockCustomers.sort((a, b) => b.createdAt - a.createdAt));
-    }
+  res.json(customer);
+});
 
-    const customers = await Customer.find().sort({ createdAt: -1 });
-    res.json(customers);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+export const getCustomers = asyncHandler(async (req, res) => {
+  const customers = await customerRepo.getCustomers();
+  res.json(customers);
+});
+
+export const updateCustomer = asyncHandler(async (req, res) => {
+  const updated = await customerRepo.updateCustomer(req.params.id, req.body);
+
+  if (!updated) {
+    throw new AppError("Customer not found", 404);
   }
-};
 
-// ✏️ Update Customer
-export const updateCustomer = async (req, res) => {
-  try {
-    if (USE_MOCK) {
-      const customer = mockCustomers.find((c) => c._id == req.params.id);
+  emitLeadUpdated(updated);
+  res.json(updated);
+});
 
-      if (!customer) {
-        return res.status(404).json({ message: "Customer not found" });
-      }
-
-      Object.assign(customer, req.body);
-      customer.updatedAt = new Date();
-      try {
-        const io = getIO();
-        io.emit("lead_updated", customer);
-      } catch {
-        // Socket server may not be initialized in some test contexts.
-      }
-
-      return res.json(customer);
-    }
-
-    const updated = await Customer.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-
-    try {
-      const io = getIO();
-      io.emit("lead_updated", updated);
-    } catch {
-      // Socket server may not be initialized in some test contexts.
-    }
-
-    res.json(updated);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// 🔎 Search (for CRM search bar)
-export const searchCustomers = async (req, res) => {
-  try {
-    const { query } = req.query;
-
-    if (USE_MOCK) {
-      const results = mockCustomers.filter((c) =>
-        c.name.toLowerCase().includes(query.toLowerCase())
-      );
-
-      return res.json(results);
-    }
-
-    const results = await Customer.find({
-      $text: { $search: query },
-    });
-
-    res.json(results);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
+export const searchCustomers = asyncHandler(async (req, res) => {
+  const { query } = req.query;
+  const results = await customerRepo.searchCustomers(query);
+  res.json(results);
+});

@@ -1,34 +1,28 @@
-// Notes Module - To be implemented
-// This will handle call notes, follow-ups, and internal comments
+import { asyncHandler } from "../../middlewares/async.middleware.js";
+import { AppError } from "../../middlewares/error.middleware.js";
+import * as noteRepo from "../../repositories/note.repository.js";
 
-export const createNote = async (req, res) => {
-  try {
-    const { customerId, callId, content, type } = req.body;
-    const agentId = req.user?.id;
+export const createNote = asyncHandler(async (req, res) => {
+  const { customerId, callId, content, type } = req.body;
+  const agentId = req.user?.id;
 
-    // Future: Save to database
-
-    res.status(201).json({
-      message: "Note created",
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  if (!agentId) {
+    throw new AppError("Unauthorized", 401);
   }
-};
 
-export const getNotesByCustomer = async (req, res) => {
-  try {
-    const { customerId } = req.params;
+  const note = await noteRepo.createNote({
+    customerId,
+    callId,
+    content,
+    type,
+    agentId,
+  });
 
-    // Future: Fetch from database
+  res.status(201).json({ message: "Note created", note });
+});
 
-    res.json([]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-export default {
-  createNote,
-  getNotesByCustomer,
-};
+export const getNotesByCustomer = asyncHandler(async (req, res) => {
+  const { customerId } = req.params;
+  const notes = await noteRepo.findNotesByCustomerId(customerId);
+  res.json(notes);
+});

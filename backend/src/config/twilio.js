@@ -1,13 +1,16 @@
-// Twilio Configuration - Placeholder for future implementation
-// Used for real VoIP calls, SMS, and voice services
-
-export const initializeTwilio = () => {
-  // Initialize Twilio client with credentials from .env
-  // const twilio = require("twilio");
-  // const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-  console.log("📞 Twilio initialized (placeholder)");
+export const twilioConfig = {
+  accountSid: process.env.TWILIO_ACCOUNT_SID || "",
+  authToken: process.env.TWILIO_AUTH_TOKEN || "",
+  phoneNumber: process.env.TWILIO_PHONE_NUMBER || "",
+  /** Public URL for Twilio webhooks (ngrok or production domain) */
+  webhookBaseUrl: process.env.PUBLIC_API_URL || "http://localhost:5000",
 };
 
-export default {
-  initializeTwilio,
-};
+export const isTwilioEnabled = () =>
+  Boolean(
+    twilioConfig.accountSid &&
+      twilioConfig.authToken &&
+      twilioConfig.phoneNumber
+  );
+
+export default twilioConfig;

@@ -1,14 +1,37 @@
-// Global error handling middleware
-export const errorHandler = (err, req, res, next) => {
-  console.error("❌ Error:", err.message);
+import logger from "../telemetry/logger.js";
 
-  res.status(err.status || 500).json({
-    message: err.message || "Internal server error",
-    error: process.env.NODE_ENV === "development" ? err : {},
+export class AppError extends Error {
+  constructor(message, statusCode = 500) {
+    super(message);
+    this.statusCode = statusCode;
+    this.isOperational = true;
+  }
+}
+
+export const errorHandler = (err, req, res, next) => {
+  const status = err.statusCode || err.status || 500;
+  const message = err.message || "Internal server error";
+
+  logger.error(
+    {
+      err,
+      status,
+      path: req.path,
+      method: req.method,
+    },
+    message
+  );
+
+  res.status(status).json({
+    success: false,
+    message,
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 };
 
-// 404 handler
 export const notFound = (req, res) => {
-  res.status(404).json({ message: "Route not found" });
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+  });
 };

@@ -9,20 +9,15 @@ export default function Dialer() {
   const appendDigit = useStore((state) => state.appendDigit);
   const backspaceDialedNumber = useStore((state) => state.backspaceDialedNumber);
   const setDialedNumber = useStore((state) => state.setDialedNumber);
-  const startCall = useStore((state) => state.startCall);
   const makeRealCall = useStore((state) => state.makeRealCall);
+  const sipStatus = useStore((state) => state.sipStatus);
   const isCalling = useStore((state) => state.isCalling);
 
   const canCall = dialedNumber.trim().length > 0 && !isCalling;
 
   const handleCall = async () => {
     if (!canCall) return;
-
-    try {
-      await makeRealCall(dialedNumber);
-    } catch {
-      startCall({ number: dialedNumber });
-    }
+    await makeRealCall(dialedNumber);
   };
 
   return (
@@ -32,7 +27,9 @@ export default function Dialer() {
           <p className="eyebrow">Smart Dialer</p>
           <h2>New Conversation</h2>
         </div>
-        <span className="pill ai">AI Ready</span>
+        <span className={`pill ${sipStatus === "registered" ? "ai" : ""}`}>
+          SIP {sipStatus}
+        </span>
       </div>
 
       <label className={`dialer-input ${dialedNumber ? "has-value" : ""}`}>
