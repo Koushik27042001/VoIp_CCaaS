@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { getSocket } from "../utils/socket";
-import API from "../api/client";
 import {
   fetchCustomers,
   fetchAnalytics,
@@ -9,56 +8,6 @@ import {
   reportSipRegistration,
 } from "../api/api";
 import { registerSipAgent, unregisterSipAgent } from "../telecom/sipClient";
-
-const leadSeeds = [
-  {
-    id: "ld-1001",
-    name: "Aarav Sharma",
-    company: "Nimbus Labs",
-    phone: "+91 98765 43210",
-    email: "aarav@nimbuslabs.io",
-    status: "Interested",
-    priority: "Hot",
-    lastTouch: "2 min ago",
-    notes: [
-      "Asked for pricing breakdown for 20-agent onboarding.",
-      "Prefers WhatsApp follow-up after 6 PM.",
-    ],
-  },
-  {
-    id: "ld-1002",
-    name: "Meera Iyer",
-    company: "Orbit Retail",
-    phone: "+91 99887 76655",
-    email: "meera@orbitretail.in",
-    status: "Contacted",
-    priority: "Warm",
-    lastTouch: "18 min ago",
-    notes: ["Interested in call recording and CRM sync."],
-  },
-  {
-    id: "ld-1003",
-    name: "Rohan Verma",
-    company: "BluePeak Finance",
-    phone: "+91 90123 45678",
-    email: "rohan@bluepeak.finance",
-    status: "New",
-    priority: "Warm",
-    lastTouch: "35 min ago",
-    notes: ["Requested callback tomorrow morning."],
-  },
-  {
-    id: "ld-1004",
-    name: "Priya Nair",
-    company: "ZenCargo",
-    phone: "+91 91234 56789",
-    email: "priya@zencargo.co",
-    status: "Closed",
-    priority: "Cold",
-    lastTouch: "1 day ago",
-    notes: ["Deal won. Waiting for implementation kickoff."],
-  },
-];
 
 const agentStatuses = [
   { id: "ag-1", name: "Ritika", status: "Available", calls: 14 },
@@ -93,9 +42,7 @@ export const useStore = create((set, get) => ({
   agentAvailability: "Available",
   agents: agentStatuses,
   activityFeed: [
-    { id: "ac-1", type: "call", text: "Call connected with Aarav Sharma", time: "Just now" },
-    { id: "ac-2", type: "note", text: "Pricing note added to Orbit Retail", time: "12 min ago" },
-    { id: "ac-3", type: "status", text: "Priya Nair moved to Closed", time: "1 hr ago" },
+    { id: "ac-1", type: "call", text: "Call connected", time: "Just now" },
   ],
   sipStatus: "offline",
   backendOnline: null,
@@ -134,20 +81,13 @@ export const useStore = create((set, get) => ({
     })),
   startCall: ({ number, leadId } = {}) => {
     const state = get();
-
     const lead = state.leads.find(
       (item) => item.id === (leadId ?? state.selectedLeadId)
     );
-
     const resolvedNumber =
-      number ||
-      lead?.phone ||
-      state.dialedNumber ||
-      "+91 90000 00000";
+      number || lead?.phone || state.dialedNumber || "";
 
-    const socket = getSocket();
-
-    socket?.emit("start_call", {
+    getSocket()?.emit("start_call", {
       number: resolvedNumber,
       customer: lead || null,
     });
@@ -168,12 +108,8 @@ export const useStore = create((set, get) => ({
       },
     });
   },
-
   endCall: () => {
-    const socket = getSocket();
-
-    socket?.emit("end_call");
-
+    getSocket()?.emit("end_call");
     const state = get();
     set({
       activeCall: null,
@@ -184,71 +120,55 @@ export const useStore = create((set, get) => ({
         {
           id: `${Date.now()}-end`,
           type: "call",
-          text: "Call ended and summary synced to CRM",
+          text: "Call ended",
           time: "Just now",
         },
         ...state.activityFeed.slice(0, 5),
       ],
     });
   },
-
   toggleMute: () =>
     set((state) => ({
-      activeCall: state.activeCall ? { ...state.activeCall, muted: !state.activeCall.muted } : null,
+      activeCall: state.activeCall
+        ? { ...state.activeCall, muted: !state.activeCall.muted }
+        : null,
     })),
   toggleHold: () =>
     set((state) => ({
-      activeCall: state.activeCall ? { ...state.activeCall, onHold: !state.activeCall.onHold } : null,
+      activeCall: state.activeCall
+        ? { ...state.activeCall, onHold: !state.activeCall.onHold }
+        : null,
     })),
   updateLeadStatus: (leadId, status) =>
     set((state) => ({
       leads: state.leads.map((lead) =>
-        lead.id === leadId ? { ...lead, status, lastTouch: "Just now" } : lead,
+        lead.id === leadId ? { ...lead, status, lastTouch: "Just now" } : lead
       ),
-      activityFeed: [
-        {
-          id: `${Date.now()}-status`,
-          type: "status",
-          text: `Lead updated to ${status}`,
-          time: "Just now",
-        },
-        ...state.activityFeed.slice(0, 5),
-      ],
     })),
   addLeadNote: (leadId, note) =>
     set((state) => ({
       leads: state.leads.map((lead) =>
-        lead.id === leadId ? { ...lead, notes: [note, ...lead.notes], lastTouch: "Just now" } : lead,
+        lead.id === leadId
+          ? { ...lead, notes: [note, ...(lead.notes || [])], lastTouch: "Just now" }
+          : lead
       ),
-      activityFeed: [
-        {
-          id: `${Date.now()}-note`,
-          type: "note",
-          text: "New note added to lead timeline",
-          time: "Just now",
-        },
-        ...state.activityFeed.slice(0, 5),
-      ],
     })),
   getSelectedLead: () => {
     const state = get();
     return state.leads.find((lead) => lead.id === state.selectedLeadId) ?? null;
   },
   getActiveCallDuration: () => formatElapsed(get().activeCall?.startedAt),
-
-  // Backend Integration Functions
   checkBackendHealth: async () => {
     try {
+      const { default: API } = await import("../api/client");
       await API.get("/health");
       set({ backendOnline: true, backendStatusMessage: "Online" });
       return true;
-    } catch (error) {
-      console.error("Backend health check failed:", error);
+    } catch {
       set({ backendOnline: false, backendStatusMessage: "Backend unavailable" });
       return false;
     }
   },
-
   loadCustomersFromBackend: async () => {
     set({ leadsLoading: true, leadsError: "" });
     try {
@@ -264,7 +184,6 @@ export const useStore = create((set, get) => ({
         lastTouch: "Just now",
         notes: Array.isArray(customer.notes) ? customer.notes : [],
       }));
-
       set({
         leads,
         selectedLeadId: leads[0]?.id ?? null,
@@ -285,18 +204,18 @@ export const useStore = create((set, get) => ({
       });
     }
   },
-
   loadAnalyticsFromBackend: async () => {
     try {
       const res = await fetchAnalytics();
-
       set({
         analytics: {
           callsHandled: res.data.callsHandled ?? res.data.total ?? 0,
           missedCalls: res.data.missedCalls ?? res.data.missed ?? 0,
           conversionRate:
             res.data.conversionRate ??
-            (res.data.total ? Math.round(((res.data.completed || 0) / res.data.total) * 100) : 0),
+            (res.data.total
+              ? Math.round(((res.data.completed || 0) / res.data.total) * 100)
+              : 0),
           avgHandleTime:
             res.data.avgHandleTime || formatDuration(res.data.avgDuration || 0),
           csat: res.data.csat ?? 0,
@@ -319,12 +238,9 @@ export const useStore = create((set, get) => ({
       });
     }
   },
-
   bindSocketCallEvents: () => {
     if (get().socketEventsBound) return;
-
     const socket = getSocket();
-
     socket.on("call_ringing", (call) => {
       set({
         isCalling: true,
@@ -340,7 +256,6 @@ export const useStore = create((set, get) => ({
         ],
       });
     });
-
     socket.on("call_connected", (call) => {
       set({
         isCalling: false,
@@ -356,7 +271,6 @@ export const useStore = create((set, get) => ({
         },
       });
     });
-
     socket.on("call_ended", () => {
       set({
         activeCall: null,
@@ -365,71 +279,50 @@ export const useStore = create((set, get) => ({
         agentAvailability: "Available",
       });
     });
-
     set({ socketEventsBound: true });
   },
-
   initTelecom: async () => {
-    const token =
-      localStorage.getItem("token") || process.env.REACT_APP_API_TOKEN;
-
+    const token = localStorage.getItem("token");
     if (!token || process.env.REACT_APP_AUTO_SIP_REGISTER === "false") {
       return;
     }
-
     try {
       const res = await fetchSipConfig();
       const config = res.data.data;
-
       set({ sipStatus: "registering" });
-
       await registerSipAgent(config, {
         onStateChange: async (state) => {
-          const extension = config.extension;
           let status = "offline";
-
-          if (state === "Registered") {
-            status = "registered";
-          } else if (state === "Unregistered") {
-            status = "unregistered";
-          } else if (state === "Terminated") {
-            status = "failed";
-          }
-
+          if (state === "Registered") status = "registered";
+          else if (state === "Unregistered") status = "unregistered";
+          else if (state === "Terminated") status = "failed";
           set({ sipStatus: status });
-
           try {
-            await reportSipRegistration({ extension, status });
+            await reportSipRegistration({
+              extension: config.extension,
+              status,
+            });
           } catch (err) {
             console.error("SIP registration report failed:", err);
           }
         },
       });
-
       set({ sipStatus: "registered" });
     } catch (error) {
       console.error("SIP registration failed:", error);
       set({ sipStatus: "failed" });
     }
   },
-
   disconnectTelecom: async () => {
     await unregisterSipAgent();
     set({ sipStatus: "offline" });
   },
-
   makeRealCall: async (phoneNumber) => {
     const state = get();
     const lead = state.leads.find((item) => item.phone === phoneNumber);
-
-    set({
-      isCalling: true,
-      callingNumber: phoneNumber,
-    });
-
+    set({ isCalling: true, callingNumber: phoneNumber });
     try {
       const response = await placeOutboundCall(phoneNumber);
-
       set({
         agentAvailability: "On Call",
         isCalling: false,
@@ -445,12 +338,10 @@ export const useStore = create((set, get) => ({
           onHold: false,
         },
       });
-
       return response.data;
     } catch (error) {
       const message =
         error.response?.data?.message || error.message || "Call failed";
-
       set({
         isCalling: false,
         callingNumber: "",

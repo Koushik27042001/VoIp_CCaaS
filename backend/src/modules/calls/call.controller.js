@@ -5,7 +5,6 @@ import * as customerRepo from "../../repositories/customer.repository.js";
 import { dialOutbound } from "../../services/outboundCall.service.js";
 import {
   emitCallStarted,
-  emitCallEnded,
   emitCallFailed,
 } from "../../events/call.events.js";
 import logger from "../../telemetry/logger.js";
@@ -20,7 +19,7 @@ export const makeCall = asyncHandler(async (req, res) => {
   const customer = await customerRepo.getCustomerByPhone(normalizedPhone);
   const callId = `call_${Date.now()}_${agentId}`;
 
-  const callRecord = await callRepo.createCall({
+  await callRepo.createCall({
     callId,
     phone: normalizedPhone,
     agentId,

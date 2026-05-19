@@ -16,7 +16,6 @@ export const reportSipRegistration = (payload) =>
 
 export const fetchSipHealth = () => API.get("/sip/health");
 
-// Auth
 export const login = (email, password) =>
   API.post("/auth/login", { email, password });
 
@@ -24,7 +23,6 @@ export const setupAdmin = (payload) => API.post("/auth/setup", payload);
 
 export const getMe = () => API.get("/auth/me");
 
-// Users (admin)
 export const createAgent = (payload) => API.post("/users/agents", payload);
 
 export const fetchAgents = () => API.get("/users/agents");

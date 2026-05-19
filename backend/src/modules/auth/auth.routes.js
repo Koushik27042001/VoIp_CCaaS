@@ -7,7 +7,6 @@ import { registerSchema, loginSchema } from "../../validators/auth.validator.js"
 
 const router = express.Router();
 
-/** One-time bootstrap when database has zero users */
 router.post(
   "/setup",
   validate(z.object({ body: registerSchema })),

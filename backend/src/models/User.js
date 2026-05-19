@@ -23,4 +23,7 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+userSchema.index({ status: 1, updatedAt: -1 });
+userSchema.index({ role: 1, status: 1 });
+
 export default mongoose.model("User", userSchema);

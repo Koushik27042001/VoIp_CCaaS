@@ -1,6 +1,5 @@
 /**
  * @deprecated Import from ../telemetry/logger.js instead.
- * Kept for backward compatibility with existing imports.
  */
 import telemetryLogger from "../telemetry/logger.js";
 

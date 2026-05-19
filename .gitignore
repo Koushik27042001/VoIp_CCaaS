@@ -2,6 +2,7 @@
 /backend/node_modules
 /dist
 /build
+/backend/generated
 /.env
 .DS_Store
 *.log

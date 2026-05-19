@@ -6,7 +6,6 @@ import { z } from "zod";
  * @example
  * validate(z.object({ body: registerSchema }))
  * validate(z.object({ params: phoneParamSchema }))
- * validate(z.object({ body: outboundCallSchema, params: callIdParamSchema }))
  */
 export const validate = (schema) => (req, res, next) => {
   const result = schema.safeParse({

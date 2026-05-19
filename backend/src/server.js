@@ -17,6 +17,18 @@ const startServer = async () => {
 
   const PORT = process.env.PORT || 5000;
 
+  server.on("error", (error) => {
+    if (error.code === "EADDRINUSE") {
+      logger.error(
+        { port: PORT },
+        `Port ${PORT} is already in use. Stop the existing process or set a different PORT.`
+      );
+      process.exit(1);
+    }
+    logger.error({ err: error }, "HTTP server failed");
+    process.exit(1);
+  });
+
   server.listen(PORT, () => {
     logger.info({ port: PORT, env: process.env.NODE_ENV }, "Server started");
   });

@@ -10,6 +10,7 @@ const callSchema = new mongoose.Schema(
     phone: {
       type: String,
       required: true,
+      trim: true,
     },
     agentId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -21,7 +22,7 @@ const callSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["ringing", "connected", "ended"],
+      enum: ["waiting", "ringing", "connected", "active", "ended", "failed"],
       default: "ringing",
     },
     duration: {
@@ -35,7 +36,7 @@ const callSchema = new mongoose.Schema(
     endTime: Date,
     notes: {
       type: String,
-      default: "",
+      default: undefined,
     },
     disposition: {
       type: String,
@@ -53,7 +54,9 @@ const callSchema = new mongoose.Schema(
 );
 
 callSchema.index({ phone: 1 });
-callSchema.index({ agentId: 1 });
+callSchema.index({ status: 1, createdAt: -1 });
+callSchema.index({ agentId: 1, createdAt: -1 });
 callSchema.index({ startTime: -1 });
+callSchema.index({ customerId: 1, createdAt: -1 });
 
 export default mongoose.model("Call", callSchema);

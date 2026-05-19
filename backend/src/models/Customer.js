@@ -10,6 +10,7 @@ const customerSchema = new mongoose.Schema(
       type: String,
       unique: true,
       required: true,
+      trim: true,
     },
     email: String,
     company: String,
@@ -33,7 +34,8 @@ const customerSchema = new mongoose.Schema(
 );
 
 // 🔥 IMPORTANT INDEXES (very important for performance)
-customerSchema.index({ phone: 1 });
+customerSchema.index({ createdAt: -1 });
+customerSchema.index({ assignedAgent: 1, createdAt: -1 });
 customerSchema.index({ name: "text" });
 
 export default mongoose.model("Customer", customerSchema);

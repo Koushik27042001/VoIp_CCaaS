@@ -1,8 +1,9 @@
-import { CalendarClock, CheckCircle2, FilePlus2, Phone } from "lucide-react";
+import { CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, FilePlus2, Phone } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useStore } from "../store/useStore";
 
 const statuses = ["Contacted", "Interested", "Closed"];
+const LEADS_PER_PAGE = 8;
 
 function initials(name = "") {
   return name
@@ -25,6 +26,8 @@ export default function LeadPanel() {
   const leadsError = useStore((state) => state.leadsError);
   const loadCustomersFromBackend = useStore((state) => state.loadCustomersFromBackend);
   const [noteDraft, setNoteDraft] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const selectedLeadId = selectedLead?.id;
 
   useEffect(() => {
     loadCustomersFromBackend();
@@ -43,13 +46,47 @@ export default function LeadPanel() {
     [leads],
   );
 
+  const pageCount = Math.max(1, Math.ceil(leads.length / LEADS_PER_PAGE));
+  const pageStart = (currentPage - 1) * LEADS_PER_PAGE;
+  const visibleLeads = useMemo(
+    () => leads.slice(pageStart, pageStart + LEADS_PER_PAGE),
+    [leads, pageStart],
+  );
+  const showingStart = leads.length === 0 ? 0 : pageStart + 1;
+  const showingEnd = Math.min(pageStart + LEADS_PER_PAGE, leads.length);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, pageCount));
+  }, [pageCount]);
+
+  useEffect(() => {
+    if (!selectedLeadId) return;
+
+    const selectedIndex = leads.findIndex((lead) => lead.id === selectedLeadId);
+    if (selectedIndex === -1) return;
+
+    const selectedPage = Math.floor(selectedIndex / LEADS_PER_PAGE) + 1;
+    setCurrentPage(selectedPage);
+  }, [leads, selectedLeadId]);
+
+  const paginationPages = useMemo(() => {
+    const pages = new Set([1, pageCount, currentPage - 1, currentPage, currentPage + 1]);
+    return Array.from(pages)
+      .filter((page) => page >= 1 && page <= pageCount)
+      .sort((a, b) => a - b);
+  }, [currentPage, pageCount]);
+
   const callLead = async () => {
     if (!selectedLead?.phone) return;
 
     try {
       await makeRealCall(selectedLead.phone);
     } catch {
-      startCall({ leadId: selectedLead.id });
+      try {
+        await startCall({ leadId: selectedLead.id });
+      } catch {
+        // Store owns the visible error/activity state.
+      }
     }
   };
 
@@ -84,21 +121,66 @@ export default function LeadPanel() {
                   : "No leads available yet.")}
             </div>
           ) : (
-            leads.map((lead) => (
-              <button
-                key={lead.id}
-                className={`lead-card ${selectedLead?.id === lead.id ? "selected" : ""}`}
-                type="button"
-                onClick={() => selectLead(lead.id)}
-              >
-                <div>
-                  <strong>{lead.name}</strong>
-                  <p>{lead.company}</p>
-                  <span>{lead.lastTouch}</span>
+            <>
+              <div className="lead-page-list">
+                {visibleLeads.map((lead) => (
+                  <button
+                    key={lead.id}
+                    className={`lead-card ${selectedLead?.id === lead.id ? "selected" : ""}`}
+                    type="button"
+                    onClick={() => selectLead(lead.id)}
+                  >
+                    <div>
+                      <strong>{lead.name}</strong>
+                      <p>{lead.company}</p>
+                      <span>{lead.lastTouch}</span>
+                    </div>
+                    <span className={`pill ${lead.priority?.toLowerCase() || "warm"}`}>{lead.priority}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="lead-pagination">
+                <span className="pagination-range">
+                  {showingStart}-{showingEnd} of {leads.length}
+                </span>
+                <div className="pagination-controls">
+                  <button
+                    aria-label="Previous leads page"
+                    type="button"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  >
+                    <ChevronLeft size={15} />
+                  </button>
+                  {paginationPages.map((page, index) => {
+                    const previousPage = paginationPages[index - 1];
+                    const showGap = previousPage && page - previousPage > 1;
+
+                    return (
+                      <span className="pagination-group" key={page}>
+                        {showGap ? <span className="pagination-gap">...</span> : null}
+                        <button
+                          className={currentPage === page ? "active" : ""}
+                          type="button"
+                          onClick={() => setCurrentPage(page)}
+                        >
+                          {page}
+                        </button>
+                      </span>
+                    );
+                  })}
+                  <button
+                    aria-label="Next leads page"
+                    type="button"
+                    disabled={currentPage === pageCount}
+                    onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}
+                  >
+                    <ChevronRight size={15} />
+                  </button>
                 </div>
-                <span className={`pill ${lead.priority?.toLowerCase() || "warm"}`}>{lead.priority}</span>
-              </button>
-            ))
+              </div>
+            </>
           )}
         </div>
 
