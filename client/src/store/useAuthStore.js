@@ -106,3 +106,5 @@ export const useAuthStore = create((set, get) => ({
 
   isAdmin: () => get().user?.role === "admin",
 }));
+
+export default useAuthStore;

@@ -1,0 +1,662 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+
+  html,
+  body,
+  #root {
+    @apply min-h-full;
+  }
+
+  body {
+    @apply m-0 overflow-hidden bg-slate-950 text-slate-100 antialiased;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background:
+      radial-gradient(circle at 10% 8%, rgba(14, 165, 233, 0.22), transparent 28%),
+      radial-gradient(circle at 86% 12%, rgba(168, 85, 247, 0.25), transparent 26%),
+      radial-gradient(circle at 64% 92%, rgba(16, 185, 129, 0.16), transparent 28%),
+      linear-gradient(135deg, #020617 0%, #0f172a 44%, #111827 100%);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    @apply font-inherit;
+  }
+
+  button {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  .app-shell {
+    @apply relative grid h-screen grid-cols-[112px_minmax(0,1fr)] overflow-hidden;
+  }
+
+  .app-shell::before {
+    @apply pointer-events-none absolute inset-0 opacity-70;
+    content: "";
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(circle at center, black, transparent 75%);
+  }
+
+  .sidebar {
+    @apply relative z-10 flex h-screen flex-col border-r border-white/10 bg-slate-950/75 px-3 py-5 shadow-panel backdrop-blur-2xl;
+  }
+
+  .sidebar-brand {
+    @apply mx-auto mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-cyan-400 via-violet-500 to-fuchsia-500 p-px shadow-glow animate-float;
+  }
+
+  .sidebar-brand span {
+    @apply grid h-full w-full place-items-center rounded-2xl bg-slate-950 text-lg font-black text-white;
+  }
+
+  .sidebar-user {
+    @apply mb-6 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] px-2 py-3 text-center;
+  }
+
+  .sidebar-user p {
+    @apply truncate text-xs font-semibold text-slate-200;
+  }
+
+  .sidebar-user span {
+    @apply mt-1 block truncate text-[10px] font-bold uppercase tracking-[0.24em] text-cyan-300;
+  }
+
+  .sidebar-nav {
+    @apply flex flex-1 flex-col gap-3;
+  }
+
+  .sidebar-button {
+    @apply relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] px-2 py-4 text-center text-xs font-bold text-slate-300 transition duration-300 hover:-translate-y-0.5 hover:border-cyan-300/40 hover:bg-cyan-300/10 hover:text-white hover:shadow-glow;
+  }
+
+  .sidebar-button.active {
+    @apply border-violet-300/60 bg-gradient-to-br from-violet-600 to-cyan-500 text-white shadow-glow;
+  }
+
+  .sidebar-logout {
+    @apply mt-5 rounded-2xl border border-white/10 bg-white/[0.05] px-3 py-3 text-xs font-bold text-slate-300 transition duration-300 hover:border-rose-300/50 hover:bg-rose-500/15 hover:text-rose-100;
+  }
+
+  .dashboard-main {
+    @apply relative z-10 min-w-0 overflow-hidden p-5;
+  }
+
+  .main-scroll-container {
+    @apply h-full overflow-y-auto rounded-[32px] border border-white/10 bg-slate-900/45 p-5 shadow-panel backdrop-blur-2xl;
+  }
+
+  .topbar {
+    @apply mb-5 flex flex-wrap items-center justify-between gap-4 rounded-[28px] border border-white/10 bg-white/[0.04] p-5;
+  }
+
+  .topbar h1 {
+    @apply mt-1 max-w-3xl text-2xl font-black tracking-tight text-white md:text-4xl;
+  }
+
+  .topbar-actions,
+  .action-row,
+  .dialer-actions,
+  .control-row,
+  .trunk-actions {
+    @apply flex flex-wrap items-center gap-3;
+  }
+
+  .eyebrow {
+    @apply text-[11px] font-black uppercase tracking-[0.28em] text-cyan-300;
+  }
+
+  .eyebrow.live {
+    @apply text-emerald-300;
+  }
+
+  .soft-badge,
+  .pill,
+  .trend-pill {
+    @apply inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-black text-slate-200;
+  }
+
+  .soft-badge.success,
+  .pill.live,
+  .pill.ai,
+  .trend-pill.up,
+  .trend-pill.ai {
+    @apply border-emerald-300/30 bg-emerald-400/15 text-emerald-200;
+  }
+
+  .trend-pill.down,
+  .pill.cold {
+    @apply border-rose-300/30 bg-rose-400/15 text-rose-200;
+  }
+
+  .pill.hot {
+    @apply border-orange-300/30 bg-orange-400/15 text-orange-100;
+  }
+
+  .pill.warm {
+    @apply border-amber-300/30 bg-amber-400/15 text-amber-100;
+  }
+
+  .dashboard-top-section {
+    @apply mb-5;
+  }
+
+  .analytics-grid {
+    @apply grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5;
+  }
+
+  .metric-card,
+  .panel,
+  .lead-panel {
+    @apply rounded-[28px] border border-white/10 bg-white/[0.06] p-5 shadow-panel backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-cyan-300/30 hover:bg-white/[0.08];
+  }
+
+  .creative-card {
+    @apply relative overflow-hidden bg-gradient-to-br from-violet-500/20 via-fuchsia-500/10 to-cyan-400/15;
+  }
+
+  .creative-card::after {
+    @apply absolute inset-0 opacity-40;
+    content: "";
+    background: linear-gradient(110deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 5s linear infinite;
+  }
+
+  .card-header,
+  .panel-header,
+  .lead-panel-header,
+  .call-head,
+  .trunk-card-head,
+  .settings-header,
+  .notes-header {
+    @apply flex items-start justify-between gap-4;
+  }
+
+  .panel-header.compact {
+    @apply mb-5 items-center;
+  }
+
+  .icon-box,
+  .timeline-icon {
+    @apply grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-200;
+  }
+
+  .metric-label,
+  .muted-copy,
+  .call-head p,
+  .lead-card p,
+  .timeline-item span,
+  .label {
+    @apply text-sm text-slate-400;
+  }
+
+  .metric-value {
+    @apply mt-4 text-3xl font-black tracking-tight text-white;
+  }
+
+  .action-value {
+    @apply text-2xl;
+  }
+
+  .agent-strip {
+    @apply mb-5 flex flex-wrap items-center gap-4 rounded-[28px] border border-white/10 bg-white/[0.05] p-4 shadow-panel backdrop-blur-xl;
+  }
+
+  .status-select-group,
+  .agent-chip,
+  .system-live,
+  .lead-person,
+  .crm-mail,
+  .timeline-item {
+    @apply flex items-center gap-3;
+  }
+
+  .select-shell {
+    @apply flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-950/40 px-3 py-2;
+  }
+
+  .select-shell select,
+  .form-grid input,
+  .form-grid select,
+  .auth-field input,
+  .auth-field select,
+  .dialer-input input,
+  .note-composer input {
+    @apply w-full border-0 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-500;
+  }
+
+  .status-caption,
+  .lead-card span,
+  .pagination-range {
+    @apply text-xs font-semibold text-slate-400;
+  }
+
+  .agent-divider {
+    @apply hidden h-10 w-px bg-white/10 lg:block;
+  }
+
+  .agent-row {
+    @apply flex flex-1 flex-wrap gap-3;
+  }
+
+  .agent-chip {
+    @apply rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2;
+  }
+
+  .agent-chip strong {
+    @apply text-sm text-white;
+  }
+
+  .agent-chip p {
+    @apply text-xs text-slate-400;
+  }
+
+  .pulse-dot,
+  .presence {
+    @apply inline-block h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.85)] animate-pulseSoft;
+  }
+
+  .pulse-dot.offline,
+  .presence.break {
+    @apply bg-rose-400 shadow-[0_0_18px_rgba(251,113,133,0.75)];
+  }
+
+  .presence {
+    @apply absolute -bottom-0.5 -right-0.5 border-2 border-slate-900;
+  }
+
+  .avatar {
+    @apply relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-400 text-sm font-black text-white shadow-glow;
+  }
+
+  .avatar.sm {
+    @apply h-10 w-10 text-xs;
+  }
+
+  .avatar.lg {
+    @apply h-16 w-16;
+  }
+
+  .avatar.muted {
+    @apply bg-none bg-slate-800 text-slate-300 shadow-none;
+  }
+
+  .workspace {
+    @apply grid grid-cols-1 gap-5 xl:grid-cols-[360px_minmax(0,1fr)_320px];
+  }
+
+  .dialer-stack,
+  .crm-panel,
+  .timeline-list,
+  .trunk-list {
+    @apply flex flex-col gap-5;
+  }
+
+  .dialer-panel,
+  .call-panel {
+    @apply min-h-[320px];
+  }
+
+  .dialer-input {
+    @apply mb-5 block rounded-3xl border border-white/10 bg-slate-950/45 px-4 py-4 transition focus-within:border-cyan-300/50 focus-within:shadow-glow;
+  }
+
+  .dialer-input input {
+    @apply text-center text-2xl tracking-wider;
+  }
+
+  .keypad-grid {
+    @apply grid grid-cols-3 gap-3;
+  }
+
+  .keypad-button,
+  .control-button,
+  .pagination-controls button,
+  .status-actions button {
+    @apply rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 font-bold text-slate-200 transition duration-300 hover:-translate-y-0.5 hover:border-cyan-300/40 hover:bg-cyan-300/10 hover:text-white;
+  }
+
+  .keypad-button {
+    @apply text-xl;
+  }
+
+  .primary-button,
+  .ghost-button,
+  .danger-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black transition duration-300 disabled:cursor-not-allowed disabled:opacity-45;
+  }
+
+  .primary-button {
+    @apply bg-gradient-to-r from-cyan-400 via-blue-500 to-violet-600 text-white shadow-glow hover:-translate-y-0.5 hover:brightness-110;
+  }
+
+  .ghost-button {
+    @apply border border-white/10 bg-white/[0.05] text-slate-200 hover:-translate-y-0.5 hover:border-cyan-300/40 hover:bg-cyan-300/10 hover:text-white;
+  }
+
+  .danger-button {
+    @apply border border-rose-300/30 bg-rose-500/15 text-rose-100 hover:-translate-y-0.5 hover:bg-rose-500/25;
+  }
+
+  .empty-call-state,
+  .center-copy {
+    @apply grid place-items-center text-center;
+  }
+
+  .empty-call-state {
+    @apply min-h-[260px];
+  }
+
+  .empty-call-state h3 {
+    @apply mt-4 text-xl font-black;
+  }
+
+  .live-bar {
+    @apply mb-5 h-1.5 rounded-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-violet-500;
+  }
+
+  .call-time {
+    @apply rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-right;
+  }
+
+  .call-time strong {
+    @apply block text-xl text-white;
+  }
+
+  .call-time span {
+    @apply text-xs text-slate-400;
+  }
+
+  .waveform {
+    @apply my-6 flex h-20 items-center justify-center gap-1 rounded-3xl border border-white/10 bg-slate-950/35 px-4;
+  }
+
+  .waveform span {
+    @apply block h-12 w-2 rounded-full bg-gradient-to-t from-cyan-400 to-violet-400;
+    animation: wave 1.05s ease-in-out infinite;
+    animation-delay: calc(var(--i) * 55ms);
+  }
+
+  .waveform.quiet span {
+    @apply opacity-30;
+    animation-play-state: paused;
+  }
+
+  .call-meta,
+  .detail-grid,
+  .trunk-meta-grid {
+    @apply grid grid-cols-2 gap-3;
+  }
+
+  .call-meta div,
+  .detail-grid div,
+  .score-card,
+  .trunk-meta-grid div {
+    @apply rounded-2xl border border-white/10 bg-white/[0.04] p-3;
+  }
+
+  .label {
+    @apply block text-xs font-black uppercase tracking-[0.18em];
+  }
+
+  .lead-panel {
+    @apply min-w-0;
+  }
+
+  .header-stats {
+    @apply flex items-center gap-2;
+  }
+
+  .header-stats div {
+    @apply min-w-16 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-center;
+  }
+
+  .header-stats strong {
+    @apply block text-lg text-white;
+  }
+
+  .header-stats span {
+    @apply text-[10px] font-bold uppercase tracking-widest text-slate-400;
+  }
+
+  .hot {
+    @apply text-orange-300;
+  }
+
+  .closed {
+    @apply text-emerald-300;
+  }
+
+  .lead-body {
+    @apply mt-5 grid grid-cols-1 gap-5 2xl:grid-cols-[minmax(280px,0.8fr)_minmax(320px,1fr)];
+  }
+
+  .lead-page-list {
+    @apply grid gap-3;
+  }
+
+  .lead-card {
+    @apply flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-left transition duration-300 hover:-translate-y-0.5 hover:border-cyan-300/35 hover:bg-cyan-300/10;
+  }
+
+  .lead-card.selected {
+    @apply border-violet-300/50 bg-violet-500/15 shadow-glow;
+  }
+
+  .lead-card strong,
+  .lead-person h3,
+  .panel h2,
+  .settings-header h2 {
+    @apply font-black text-white;
+  }
+
+  .lead-pagination,
+  .pagination-controls,
+  .note-composer {
+    @apply mt-4 flex flex-wrap items-center justify-between gap-3;
+  }
+
+  .pagination-controls,
+  .pagination-group {
+    @apply mt-0 flex items-center gap-2;
+  }
+
+  .pagination-controls button {
+    @apply grid h-9 min-w-9 place-items-center px-2 py-2 text-sm;
+  }
+
+  .pagination-controls button.active {
+    @apply border-cyan-300/50 bg-cyan-400/20 text-cyan-100;
+  }
+
+  .pagination-controls button:disabled {
+    @apply opacity-35;
+  }
+
+  .lead-detail {
+    @apply min-h-[420px] rounded-[28px] border border-white/10 bg-slate-950/30 p-5;
+  }
+
+  .lead-person {
+    @apply mb-5;
+  }
+
+  .lead-person.compact {
+    @apply mb-3;
+  }
+
+  .lead-person .pill {
+    @apply ml-auto;
+  }
+
+  .status-actions {
+    @apply my-5 flex flex-wrap gap-2;
+  }
+
+  .status-actions button.active,
+  .control-button.active {
+    @apply border-cyan-300/50 bg-cyan-400/15 text-cyan-100;
+  }
+
+  .notes-box {
+    @apply mt-5 rounded-3xl border border-white/10 bg-white/[0.04] p-4;
+  }
+
+  .note-composer {
+    @apply rounded-2xl border border-white/10 bg-slate-950/35 p-2;
+  }
+
+  .note-item {
+    @apply mt-3 rounded-2xl bg-white/[0.05] p-3 text-sm text-slate-300;
+  }
+
+  .context-card {
+    @apply rounded-3xl border border-white/10 bg-slate-950/35 p-4;
+  }
+
+  .crm-mail {
+    @apply mt-4 rounded-2xl bg-white/[0.04] p-3 text-sm text-slate-300;
+  }
+
+  .score-card {
+    @apply mt-4 flex items-center justify-between;
+  }
+
+  .score-card span {
+    @apply text-sm text-slate-400;
+  }
+
+  .score-card strong {
+    @apply text-3xl font-black text-emerald-300;
+  }
+
+  .timeline-item {
+    @apply rounded-2xl border border-white/10 bg-white/[0.04] p-3;
+  }
+
+  .timeline-item p {
+    @apply text-sm font-semibold text-slate-200;
+  }
+
+  .settings-page {
+    @apply grid gap-5;
+  }
+
+  .settings-grid {
+    @apply grid grid-cols-1 gap-5 xl:grid-cols-[minmax(380px,0.8fr)_minmax(380px,1fr)];
+  }
+
+  .form-grid {
+    @apply grid grid-cols-1 gap-3 sm:grid-cols-2;
+  }
+
+  .form-grid label,
+  .auth-field {
+    @apply rounded-2xl border border-white/10 bg-slate-950/35 px-3 py-2;
+  }
+
+  .form-grid label span,
+  .auth-field span {
+    @apply mb-1 block text-xs font-black uppercase tracking-[0.18em] text-slate-400;
+  }
+
+  .toggle-row {
+    @apply my-4 flex flex-wrap gap-4 text-sm font-semibold text-slate-300;
+  }
+
+  .toggle-row label {
+    @apply flex items-center gap-2;
+  }
+
+  .form-alert,
+  .auth-error,
+  .auth-success {
+    @apply my-3 rounded-2xl border px-4 py-3 text-sm font-bold;
+  }
+
+  .form-alert.error,
+  .auth-error {
+    @apply border-rose-300/30 bg-rose-500/15 text-rose-100;
+  }
+
+  .form-alert.success,
+  .auth-success {
+    @apply border-emerald-300/30 bg-emerald-500/15 text-emerald-100;
+  }
+
+  .trunk-card {
+    @apply rounded-3xl border border-white/10 bg-slate-950/35 p-4 transition duration-300 hover:-translate-y-1 hover:border-violet-300/40;
+  }
+
+  .auth-page,
+  .auth-loading-screen {
+    @apply grid min-h-screen place-items-center bg-slate-950 p-5 text-slate-100;
+  }
+
+  .auth-card,
+  .admin-agents-page {
+    @apply w-full max-w-md rounded-[32px] border border-white/10 bg-white/[0.06] p-6 shadow-panel backdrop-blur-xl;
+  }
+
+  .auth-card h1 {
+    @apply mt-2 text-3xl font-black text-white;
+  }
+
+  .auth-submit {
+    @apply mt-5 w-full;
+  }
+
+  .auth-footer {
+    @apply mt-5 text-center text-sm text-slate-400;
+  }
+}
+
+@layer utilities {
+  .font-inherit {
+    font: inherit;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    @apply grid-cols-1;
+  }
+
+  .sidebar {
+    @apply h-auto flex-row items-center gap-3 overflow-x-auto border-b border-r-0 px-4 py-3;
+  }
+
+  .sidebar-brand,
+  .sidebar-user {
+    @apply mb-0;
+  }
+
+  .sidebar-nav {
+    @apply flex-row;
+  }
+
+  .sidebar-button {
+    @apply whitespace-nowrap px-4 py-3;
+  }
+
+  .sidebar-logout {
+    @apply mt-0;
+  }
+
+  .dashboard-main {
+    @apply h-[calc(100vh-88px)] p-3;
+  }
+}

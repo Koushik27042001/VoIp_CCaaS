@@ -5,7 +5,10 @@ import userRoutes from "./modules/users/user.routes.js";
 import customerRoutes from "./modules/customers/customer.routes.js";
 import callRoutes from "./modules/calls/call.routes.js";
 import analyticsRoutes from "./modules/analytics/analytics.routes.js";
+import leadAssignmentRoutes from "./modules/leadAssignments/leadAssignment.routes.js";
+import leadRoutes from "./modules/leads/lead.routes.js";
 import sipRoutes from "./modules/sip/sip.routes.js";
+import sipTrunkRoutes from "./modules/sipTrunks/sipTrunk.routes.js";
 import webhookRoutes from "./modules/webhooks/webhook.routes.js";
 import { errorHandler, notFound } from "./middlewares/error.middleware.js";
 import { metrics } from "./telemetry/metrics.js";
@@ -22,7 +25,10 @@ app.use("/api/users", userRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/calls", callRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/leads", leadRoutes);
+app.use("/api/lead-assignments", leadAssignmentRoutes);
 app.use("/api/sip", sipRoutes);
+app.use("/api/sip-trunks", sipTrunkRoutes);
 app.use("/api/webhooks", webhookRoutes);
 
 app.get("/api/health", (req, res) => {

@@ -70,7 +70,10 @@ export const makeCall = asyncHandler(async (req, res) => {
 });
 
 export const getCallHistory = asyncHandler(async (req, res) => {
-  const calls = await callRepo.listCalls();
+  const calls =
+    req.user.role === "admin"
+      ? await callRepo.listCalls()
+      : await callRepo.getCallsByAgent(req.user.id);
   res.json(calls);
 });
 

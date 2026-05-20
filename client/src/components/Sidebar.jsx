@@ -1,22 +1,34 @@
+import {
+  LayoutDashboard,
+  ListChecks,
+  LogOut,
+  PhoneCall,
+  Users,
+  Waypoints,
+} from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 
-export default function Sidebar() {
+const navByRole = {
+  admin: [
+    { label: "Control", path: "/admin", Icon: LayoutDashboard },
+    { label: "Agents", path: "/admin/agents", Icon: Users },
+    { label: "Leads", path: "/admin/leads", Icon: ListChecks },
+    { label: "Assign", path: "/admin/assignments", Icon: Waypoints },
+  ],
+  agent: [
+    { label: "Workspace", path: "/agent", Icon: LayoutDashboard },
+    { label: "My Leads", path: "/agent/leads", Icon: ListChecks },
+    { label: "Calls", path: "/agent/calls", Icon: PhoneCall },
+  ],
+};
+
+export default function Sidebar({ role }) {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
-
-  const menu = [
-    { label: "Overview", path: "/" },
-    { label: "Dialer", path: "/dialer" },
-    { label: "Leads", path: "/leads" },
-    { label: "Insights", path: "/insights" },
-    { label: "Settings", path: "/settings" },
-  ];
-
-  if (user?.role === "admin") {
-    menu.push({ label: "Agents", path: "/admin/agents" });
-  }
+  const resolvedRole = role || user?.role || "agent";
+  const menu = navByRole[resolvedRole] || navByRole.agent;
 
   const handleLogout = () => {
     logout();
@@ -24,35 +36,33 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="sidebar w-24 h-screen bg-[#0B0B2B] p-4 flex flex-col">
-      <div className="sidebar-user mb-6 text-center">
-        <p className="text-xs text-gray-400 truncate">{user?.name || "Agent"}</p>
-        <span className="text-[10px] uppercase text-violet-400">{user?.role}</span>
+    <aside className="sidebar">
+      <div className="sidebar-brand">
+        <span>{resolvedRole === "admin" ? "A" : "V"}</span>
       </div>
 
-      <nav className="flex-1">
-        {menu.map((item) => (
+      <div className="sidebar-user">
+        <p>{user?.name || "Agent"}</p>
+        <span>{resolvedRole}</span>
+      </div>
+
+      <nav className="sidebar-nav">
+        {menu.map(({ label, path, Icon }) => (
           <NavLink
-            key={item.path}
-            to={item.path}
+            key={path}
+            to={path}
             className={({ isActive }) =>
-              `block mb-4 p-4 rounded-xl text-center ${
-                isActive
-                  ? "bg-violet-600 text-white"
-                  : "bg-[#1A1A40] text-gray-300"
-              }`
+              `sidebar-button ${isActive ? "active" : ""}`
             }
           >
-            {item.label}
+            <Icon className="mx-auto mb-1 h-4 w-4" />
+            {label}
           </NavLink>
         ))}
       </nav>
 
-      <button
-        type="button"
-        className="sidebar-logout p-3 rounded-xl bg-[#1A1A40] text-gray-300 text-sm"
-        onClick={handleLogout}
-      >
+      <button type="button" className="sidebar-logout" onClick={handleLogout}>
+        <LogOut className="mx-auto mb-1 h-4 w-4" />
         Logout
       </button>
     </aside>
