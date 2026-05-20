@@ -14,10 +14,7 @@ export const getRegistrationConfigForUser = async (userId) => {
   const extension = await sipExtensionRepo.findByUserId(userId);
 
   if (!extension) {
-    throw new AppError(
-      "SIP extension not provisioned for this user",
-      404
-    );
+    return null;
   }
 
   return buildRegistrationConfig({

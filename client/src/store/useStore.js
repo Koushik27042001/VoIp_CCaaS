@@ -4,10 +4,19 @@ import {
   fetchCustomers,
   fetchAnalytics,
   placeOutboundCall,
+  hangupCall,
+  fetchTwilioToken,
+  fetchTwilioStatus,
   fetchSipConfig,
   reportSipRegistration,
 } from "../api/api";
 import { registerSipAgent, unregisterSipAgent } from "../telecom/sipClient";
+import {
+  initTwilioDevice,
+  connectTwilioOutbound,
+  disconnectTwilioCall,
+  destroyTwilioDevice,
+} from "../telecom/twilioVoice";
 
 const agentStatuses = [
   { id: "ag-1", name: "Ritika", status: "Available", calls: 14 },
@@ -37,14 +46,18 @@ export const useStore = create((set, get) => ({
   leads: [],
   selectedLeadId: null,
   activeCall: null,
+  currentCallId: null,
   isCalling: false,
   callingNumber: "",
+  callError: "",
   agentAvailability: "Available",
   agents: agentStatuses,
   activityFeed: [
-    { id: "ac-1", type: "call", text: "Call connected", time: "Just now" },
+    { id: "ac-1", type: "call", text: "Ready to place calls", time: "Just now" },
   ],
   sipStatus: "offline",
+  twilioStatus: "offline",
+  telecomMode: "none",
   backendOnline: null,
   backendStatusMessage: "Checking backend...",
   socketEventsBound: false,
@@ -109,23 +122,7 @@ export const useStore = create((set, get) => ({
     });
   },
   endCall: () => {
-    getSocket()?.emit("end_call");
-    const state = get();
-    set({
-      activeCall: null,
-      isCalling: false,
-      callingNumber: "",
-      agentAvailability: "Available",
-      activityFeed: [
-        {
-          id: `${Date.now()}-end`,
-          type: "call",
-          text: "Call ended",
-          time: "Just now",
-        },
-        ...state.activityFeed.slice(0, 5),
-      ],
-    });
+    get().endTelecomCall();
   },
   toggleMute: () =>
     set((state) => ({
@@ -192,8 +189,7 @@ export const useStore = create((set, get) => ({
         leadsLoading: false,
         leadsError: "",
       });
-    } catch (error) {
-      console.error("Customer load failed:", error);
+    } catch (_error) {
       set({
         leads: [],
         selectedLeadId: null,
@@ -223,8 +219,7 @@ export const useStore = create((set, get) => ({
         backendOnline: true,
         backendStatusMessage: "Backend online",
       });
-    } catch (error) {
-      console.error("Analytics load failed:", error);
+    } catch (_error) {
       set({
         analytics: {
           callsHandled: 0,
@@ -241,10 +236,12 @@ export const useStore = create((set, get) => ({
   bindSocketCallEvents: () => {
     if (get().socketEventsBound) return;
     const socket = getSocket();
+
     socket.on("call_ringing", (call) => {
       set({
         isCalling: true,
         callingNumber: call.phone,
+        callError: "",
         activityFeed: [
           {
             id: `${Date.now()}-ring`,
@@ -256,40 +253,129 @@ export const useStore = create((set, get) => ({
         ],
       });
     });
+
     socket.on("call_connected", (call) => {
+      const state = get();
+      const lead = state.leads.find((item) => item.phone === call.phone);
+
       set({
         isCalling: false,
+        callingNumber: "",
+        callError: "",
         agentAvailability: "On Call",
+        currentCallId: call.callId || state.currentCallId,
         activeCall: {
-          leadId: null,
-          name: call.phone,
-          company: "Live call",
+          leadId: lead?.id ?? null,
+          name: lead?.name ?? call.phone,
+          company: lead?.company ?? "Live call",
           number: call.phone,
           startedAt: Date.now(),
           muted: false,
           onHold: false,
         },
+        activityFeed: [
+          {
+            id: `${Date.now()}-connected`,
+            type: "call",
+            text: `Connected to ${call.phone}`,
+            time: "Just now",
+          },
+          ...state.activityFeed.slice(0, 5),
+        ],
       });
     });
+
     socket.on("call_ended", () => {
       set({
         activeCall: null,
+        currentCallId: null,
         isCalling: false,
         callingNumber: "",
+        callError: "",
         agentAvailability: "Available",
+        activityFeed: [
+          {
+            id: `${Date.now()}-end`,
+            type: "call",
+            text: "Call ended",
+            time: "Just now",
+          },
+          ...get().activityFeed.slice(0, 5),
+        ],
       });
     });
+
+    socket.on("call_failed", (payload) => {
+      set({
+        activeCall: null,
+        currentCallId: null,
+        isCalling: false,
+        callingNumber: "",
+        callError: payload?.reason || "Call failed",
+        agentAvailability: "Available",
+        activityFeed: [
+          {
+            id: `${Date.now()}-fail`,
+            type: "call",
+            text: payload?.reason || "Call failed",
+            time: "Just now",
+          },
+          ...get().activityFeed.slice(0, 5),
+        ],
+      });
+    });
+
     set({ socketEventsBound: true });
   },
   initTelecom: async () => {
     const token = localStorage.getItem("token");
-    if (!token || process.env.REACT_APP_AUTO_SIP_REGISTER === "false") {
+    if (!token || process.env.REACT_APP_AUTO_TELECOM_INIT === "false") {
       return;
     }
+
+    get().bindSocketCallEvents();
+
+    try {
+      const statusRes = await fetchTwilioStatus();
+      const { clientEnabled, enabled } = statusRes.data.data || {};
+
+      if (clientEnabled) {
+        set({ twilioStatus: "registering", telecomMode: "twilio" });
+        const tokenRes = await fetchTwilioToken();
+        await initTwilioDevice(tokenRes.data.data.token, {
+          onStatusChange: (status) => {
+            if (status === "registered") {
+              set({ twilioStatus: "registered" });
+            } else if (status === "failed") {
+              set({ twilioStatus: "failed" });
+            }
+          },
+        });
+        set({ twilioStatus: "registered", telecomMode: "twilio" });
+        return;
+      }
+
+      if (enabled) {
+        set({ twilioStatus: "ready", telecomMode: "twilio", sipStatus: "offline" });
+        return;
+      }
+    } catch (_error) {
+      set({ twilioStatus: "failed" });
+    }
+
+    if (process.env.REACT_APP_AUTO_SIP_REGISTER === "false") {
+      return;
+    }
+
     try {
       const res = await fetchSipConfig();
       const config = res.data.data;
-      set({ sipStatus: "registering" });
+
+      if (!config || res.data.provisioned === false) {
+        set({ sipStatus: "offline" });
+        return;
+      }
+      set({ sipStatus: "registering", telecomMode: "sip" });
       await registerSipAgent(config, {
         onStateChange: async (state) => {
           let status = "offline";
@@ -302,42 +388,57 @@ export const useStore = create((set, get) => ({
               extension: config.extension,
               status,
             });
-          } catch (err) {
-            console.error("SIP registration report failed:", err);
+          } catch (_err) {
+            // best-effort
           }
         },
       });
-      set({ sipStatus: "registered" });
-    } catch (error) {
-      console.error("SIP registration failed:", error);
+      set({ sipStatus: "registered", telecomMode: "sip" });
+    } catch (_error) {
       set({ sipStatus: "failed" });
     }
   },
   disconnectTelecom: async () => {
+    destroyTwilioDevice();
     await unregisterSipAgent();
-    set({ sipStatus: "offline" });
+    set({ sipStatus: "offline", twilioStatus: "offline", telecomMode: "none" });
   },
   makeRealCall: async (phoneNumber) => {
     const state = get();
     const lead = state.leads.find((item) => item.phone === phoneNumber);
-    set({ isCalling: true, callingNumber: phoneNumber });
+
+    set({
+      isCalling: true,
+      callingNumber: phoneNumber,
+      callError: "",
+    });
+
     try {
-      const response = await placeOutboundCall(phoneNumber);
+      const useClient = state.twilioStatus === "registered";
+      const response = await placeOutboundCall(
+        phoneNumber,
+        useClient ? "client" : "auto"
+      );
+      const { callId, useTwilioClient } = response.data;
+
+      set({ currentCallId: callId });
+
+      if (useTwilioClient) {
+        await connectTwilioOutbound({ to: phoneNumber, callId });
+        set({
+          isCalling: true,
+          callingNumber: phoneNumber,
+          agentAvailability: "On Call",
+        });
+        return response.data;
+      }
+
       set({
+        isCalling: true,
+        callingNumber: phoneNumber,
         agentAvailability: "On Call",
-        isCalling: false,
-        callingNumber: "",
-        dialedNumber: "",
-        activeCall: {
-          leadId: lead?.id ?? null,
-          name: lead?.name ?? phoneNumber,
-          company: lead?.company ?? "Manual Dial",
-          number: phoneNumber,
-          startedAt: Date.now(),
-          muted: false,
-          onHold: false,
-        },
       });
+
       return response.data;
     } catch (error) {
       const message =
@@ -345,6 +446,9 @@ export const useStore = create((set, get) => ({
       set({
         isCalling: false,
         callingNumber: "",
+        currentCallId: null,
+        callError: message,
+        agentAvailability: "Available",
         activityFeed: [
           {
             id: `${Date.now()}-fail`,
@@ -357,5 +461,38 @@ export const useStore = create((set, get) => ({
       });
       throw error;
     }
+  },
+  endTelecomCall: async () => {
+    const { currentCallId } = get();
+
+    disconnectTwilioCall();
+
+    if (currentCallId) {
+      try {
+        await hangupCall(currentCallId);
+      } catch (_error) {
+        // best-effort
+      }
+    }
+
+    getSocket()?.emit("end_call");
+
+    set({
+      activeCall: null,
+      currentCallId: null,
+      isCalling: false,
+      callingNumber: "",
+      callError: "",
+      agentAvailability: "Available",
+      activityFeed: [
+        {
+          id: `${Date.now()}-end`,
+          type: "call",
+          text: "Call ended",
+          time: "Just now",
+        },
+        ...get().activityFeed.slice(0, 5),
+      ],
+    });
   },
 }));

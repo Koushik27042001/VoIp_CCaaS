@@ -29,7 +29,7 @@ const run = async () => {
   const passwordHash = await bcrypt.hash(password, 10);
   await User.create({ name, email, passwordHash, role: "admin" });
 
-  console.log(`✅ Admin created: ${email} / ${password}`);
+  console.log(`✅ Admin created: ${email}`);
   await mongoose.disconnect();
 };
 

@@ -40,13 +40,13 @@ const callSchema = new mongoose.Schema(
     },
     disposition: {
       type: String,
-      enum: ["completed", "missed", "failed"],
-      default: "",
+      enum: ["pending", "completed", "missed", "failed"],
+      default: "pending",
     },
     provider: {
       type: String,
-      enum: ["twilio", "asterisk", ""],
-      default: "",
+      enum: ["twilio", "asterisk", "none"],
+      default: "none",
     },
     externalId: String,
   },

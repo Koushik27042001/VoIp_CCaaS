@@ -2,17 +2,19 @@ import { asyncHandler } from "../../middlewares/async.middleware.js";
 import { AppError } from "../../middlewares/error.middleware.js";
 import * as callRepo from "../../repositories/call.repository.js";
 import * as customerRepo from "../../repositories/customer.repository.js";
-import { dialOutbound } from "../../services/outboundCall.service.js";
+import { dialOutbound, hangupOutbound } from "../../services/outboundCall.service.js";
+import { isTwilioClientEnabled } from "../../config/twilio.js";
 import {
   emitCallStarted,
   emitCallFailed,
+  emitCallEnded,
 } from "../../events/call.events.js";
 import logger from "../../telemetry/logger.js";
 
 const normalizePhone = (phone) => phone.replace(/[\s-]/g, "").trim();
 
 export const makeCall = asyncHandler(async (req, res) => {
-  const { phone } = req.body;
+  const { phone, mode = "auto" } = req.body;
   const agentId = req.user.id;
   const normalizedPhone = normalizePhone(phone);
 
@@ -35,19 +37,23 @@ export const makeCall = asyncHandler(async (req, res) => {
   });
 
   try {
+    const useClientMode =
+      mode === "client" || (mode === "auto" && isTwilioClientEnabled());
+
     const result = await dialOutbound({
       phone: normalizedPhone,
       agentId,
       callId,
+      mode: useClientMode ? "client" : "rest",
     });
 
     const updated = await callRepo.updateCallByCallId(callId, {
-      provider: result.provider,
-      externalId: result.externalId,
+      provider: result.provider || "twilio",
+      externalId: result.externalId || undefined,
     });
 
     logger.info(
-      { callId, provider: result.provider, phone: normalizedPhone },
+      { callId, provider: result.provider, mode: result.mode, phone: normalizedPhone },
       "Outbound call initiated"
     );
 
@@ -55,6 +61,8 @@ export const makeCall = asyncHandler(async (req, res) => {
       message: "Call initiated",
       callId,
       provider: result.provider,
+      mode: result.mode || "rest",
+      useTwilioClient: result.mode === "client",
       call: updated,
     });
   } catch (err) {
@@ -67,6 +75,43 @@ export const makeCall = asyncHandler(async (req, res) => {
     emitCallFailed({ callId, phone: normalizedPhone, reason: err.message });
     throw err;
   }
+});
+
+export const hangupCall = asyncHandler(async (req, res) => {
+  const { callId } = req.body;
+
+  const call = await callRepo.findCallByCallId(callId);
+  if (!call) {
+    throw new AppError("Call not found", 404);
+  }
+
+  if (call.agentId?.toString() !== req.user.id && req.user.role !== "admin") {
+    throw new AppError("Not authorized to end this call", 403);
+  }
+
+  if (call.externalId) {
+    await hangupOutbound({
+      externalId: call.externalId,
+      provider: call.provider,
+    });
+  }
+
+  const updated = await callRepo.updateCallByCallId(callId, {
+    status: "ended",
+    endTime: new Date(),
+    disposition: call.disposition || "completed",
+  });
+
+  emitCallEnded({
+    callId,
+    duration: updated?.duration || 0,
+    disposition: updated?.disposition || "completed",
+  });
+
+  res.json({
+    message: "Call ended",
+    call: updated,
+  });
 });
 
 export const getCallHistory = asyncHandler(async (req, res) => {

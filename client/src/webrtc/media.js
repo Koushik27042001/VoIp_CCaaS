@@ -23,12 +23,9 @@ export const getLocalStream = async () => {
       video: false,
     });
 
-    console.log("Microphone connected");
-
     return localStream;
   } catch (error) {
     localStream = null;
-    console.error("Media access failed:", error);
     throw error;
   }
 };

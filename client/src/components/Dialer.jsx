@@ -11,9 +11,17 @@ export default function Dialer() {
   const setDialedNumber = useStore((state) => state.setDialedNumber);
   const makeRealCall = useStore((state) => state.makeRealCall);
   const sipStatus = useStore((state) => state.sipStatus);
+  const twilioStatus = useStore((state) => state.twilioStatus);
   const isCalling = useStore((state) => state.isCalling);
 
-  const canCall = dialedNumber.trim().length > 0 && !isCalling;
+  const voiceStatus =
+    twilioStatus === "registered" || twilioStatus === "ready"
+      ? twilioStatus
+      : sipStatus;
+  const canCall =
+    dialedNumber.trim().length > 0 &&
+    !isCalling &&
+    (voiceStatus === "registered" || voiceStatus === "ready");
 
   const handleCall = async () => {
     if (!canCall) return;
@@ -27,8 +35,8 @@ export default function Dialer() {
           <p className="eyebrow">Smart Dialer</p>
           <h2>New Conversation</h2>
         </div>
-        <span className={`pill ${sipStatus === "registered" ? "ai" : ""}`}>
-          SIP {sipStatus}
+        <span className={`pill ${voiceStatus === "registered" || voiceStatus === "ready" ? "ai" : ""}`}>
+          Voice {voiceStatus}
         </span>
       </div>
 

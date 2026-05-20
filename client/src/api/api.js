@@ -6,8 +6,14 @@ export const fetchAnalytics = () => API.get("/analytics");
 
 export const fetchCallHistory = () => API.get("/calls/history");
 
-export const placeOutboundCall = (phone) =>
-  API.post("/calls/outbound", { phone });
+export const placeOutboundCall = (phone, mode = "auto") =>
+  API.post("/calls/outbound", { phone, mode });
+
+export const hangupCall = (callId) => API.post("/calls/hangup", { callId });
+
+export const fetchTwilioToken = () => API.get("/twilio/token");
+
+export const fetchTwilioStatus = () => API.get("/twilio/status");
 
 export const fetchSipConfig = () => API.get("/sip/config");
 

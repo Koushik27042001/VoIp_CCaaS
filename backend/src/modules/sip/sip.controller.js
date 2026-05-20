@@ -3,7 +3,17 @@ import * as sipService from "./sip.service.js";
 
 export const getRegistrationConfig = asyncHandler(async (req, res) => {
   const config = await sipService.getRegistrationConfigForUser(req.user.id);
-  res.json({ success: true, data: config });
+
+  if (!config) {
+    return res.json({
+      success: true,
+      data: null,
+      provisioned: false,
+      message: "SIP extension not provisioned for this user",
+    });
+  }
+
+  res.json({ success: true, data: config, provisioned: true });
 });
 
 export const postRegistrationStatus = asyncHandler(async (req, res) => {

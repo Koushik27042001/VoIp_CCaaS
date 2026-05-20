@@ -117,8 +117,8 @@ export default function LeadPanel() {
               {leadsLoading
                 ? "Loading leads from backend..."
                 : leadsError || (backendOnline === false
-                  ? "Unable to reach backend. Check API URL/port and try again."
-                  : "No leads available yet.")}
+                  ? "Unable to reach backend. You can still place calls manually using the dialer (for Excel-based workflows)."
+                  : "No CRM leads available yet. You can still dial numbers manually from your Excel sheet.")}
             </div>
           ) : (
             <>

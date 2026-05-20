@@ -52,8 +52,8 @@ export default function CRMPanel() {
         ) : (
           <p className="muted-copy center-copy">
             {backendOnline === false
-              ? "Backend offline. Customer context unavailable until the server starts."
-              : "Select a lead to view context."
+              ? "Backend offline. Context sync is unavailable, but dialer and activity tracking continue to work."
+              : "Select a lead to view context, or keep calling manually from Excel using the dialer."
             }
           </p>
         )}

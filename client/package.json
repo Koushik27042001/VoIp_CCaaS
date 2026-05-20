@@ -2,6 +2,10 @@
   "name": "voip-dashboard",
   "private": true,
   "version": "1.0.0",
+  "engines": {
+    "node": "18.x"
+  },
+  "homepage": ".",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
@@ -9,6 +13,7 @@
     "eject": "react-scripts eject"
   },
   "dependencies": {
+    "@twilio/voice-sdk": "^2.18.3",
     "axios": "^1.15.0",
     "framer-motion": "^11.18.2",
     "lucide-react": "^0.511.0",

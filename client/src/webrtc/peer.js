@@ -50,18 +50,14 @@ export const createPeerConnection = ({ onIceCandidate, onConnectionStateChange }
     const audio = getRemoteAudio();
     audio.srcObject = stream;
 
-    audio.play().catch((error) => {
-      console.warn("Remote audio playback is waiting for browser permission:", error);
+    audio.play().catch(() => {
+      // Browser can block autoplay until a user gesture.
     });
-
-    console.log("Remote audio connected");
   };
 
   peerConnection.onconnectionstatechange = () => {
     onConnectionStateChange?.(peerConnection.connectionState);
   };
-
-  console.log("Peer connection created");
 
   return peerConnection;
 };

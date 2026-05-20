@@ -30,7 +30,4 @@ const sipExtensionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-sipExtensionSchema.index({ extension: 1 });
-sipExtensionSchema.index({ userId: 1 });
-
 export default mongoose.model("SipExtension", sipExtensionSchema);

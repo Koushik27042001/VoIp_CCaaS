@@ -9,6 +9,7 @@ import leadAssignmentRoutes from "./modules/leadAssignments/leadAssignment.route
 import leadRoutes from "./modules/leads/lead.routes.js";
 import sipRoutes from "./modules/sip/sip.routes.js";
 import sipTrunkRoutes from "./modules/sipTrunks/sipTrunk.routes.js";
+import twilioRoutes from "./modules/twilio/twilio.routes.js";
 import webhookRoutes from "./modules/webhooks/webhook.routes.js";
 import { errorHandler, notFound } from "./middlewares/error.middleware.js";
 import { metrics } from "./telemetry/metrics.js";
@@ -17,6 +18,10 @@ import { getTelecomStatus } from "./services/outboundCall.service.js";
 const app = express();
 
 app.use(cors());
+
+// Twilio webhooks must be mounted before global body parsers for signature validation.
+app.use("/api/webhooks", webhookRoutes);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -29,7 +34,7 @@ app.use("/api/leads", leadRoutes);
 app.use("/api/lead-assignments", leadAssignmentRoutes);
 app.use("/api/sip", sipRoutes);
 app.use("/api/sip-trunks", sipTrunkRoutes);
-app.use("/api/webhooks", webhookRoutes);
+app.use("/api/twilio", twilioRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({
