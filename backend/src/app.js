@@ -9,11 +9,12 @@ import leadAssignmentRoutes from "./modules/leadAssignments/leadAssignment.route
 import leadRoutes from "./modules/leads/lead.routes.js";
 import sipRoutes from "./modules/sip/sip.routes.js";
 import sipTrunkRoutes from "./modules/sipTrunks/sipTrunk.routes.js";
+import telecomRoutes from "./modules/telecom/telecom.routes.js";
 import twilioRoutes from "./modules/twilio/twilio.routes.js";
 import webhookRoutes from "./modules/webhooks/webhook.routes.js";
 import { errorHandler, notFound } from "./middlewares/error.middleware.js";
 import { metrics } from "./telemetry/metrics.js";
-import { getTelecomStatus } from "./services/outboundCall.service.js";
+import { getTelecomStatus as getOutboundTelecomStatus } from "./services/outboundCall.service.js";
 
 const app = express();
 
@@ -34,13 +35,14 @@ app.use("/api/leads", leadRoutes);
 app.use("/api/lead-assignments", leadAssignmentRoutes);
 app.use("/api/sip", sipRoutes);
 app.use("/api/sip-trunks", sipTrunkRoutes);
+app.use("/api/telecom", telecomRoutes);
 app.use("/api/twilio", twilioRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
     uptime: process.uptime(),
-    telecom: getTelecomStatus(),
+    telecom: getOutboundTelecomStatus(),
     ...(process.env.NODE_ENV !== "production" && {
       metrics: metrics.snapshot(),
     }),

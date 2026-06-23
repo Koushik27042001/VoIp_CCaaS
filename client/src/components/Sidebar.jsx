@@ -1,4 +1,5 @@
 import {
+  Cog,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -15,11 +16,13 @@ const navByRole = {
     { label: "Agents", path: "/admin/agents", Icon: Users },
     { label: "Leads", path: "/admin/leads", Icon: ListChecks },
     { label: "Assign", path: "/admin/assignments", Icon: Waypoints },
+    { label: "Settings", path: "/agent/settings/sip-trunks", Icon: Cog },
   ],
   agent: [
     { label: "Workspace", path: "/agent", Icon: LayoutDashboard },
     { label: "My Leads", path: "/agent/leads", Icon: ListChecks },
     { label: "Calls", path: "/agent/calls", Icon: PhoneCall },
+    { label: "Settings", path: "/agent/settings/sip-trunks", Icon: Cog },
   ],
 };
 
@@ -32,7 +35,7 @@ export default function Sidebar({ role }) {
 
   const handleLogout = () => {
     logout();
-    navigate("/login", { replace: true });
+    navigate("/agent", { replace: true });
   };
 
   return (

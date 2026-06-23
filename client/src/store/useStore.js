@@ -40,6 +40,13 @@ const formatDuration = (seconds) => {
   return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
 };
 
+const toRegistrationStatus = (state) => {
+  if (state === "Registered") return "registered";
+  if (state === "Unregistered") return "unregistered";
+  if (state === "Terminated") return "failed";
+  return null;
+};
+
 export const useStore = create((set, get) => ({
   activeView: "dialer",
   dialedNumber: "",
@@ -378,10 +385,12 @@ export const useStore = create((set, get) => ({
       set({ sipStatus: "registering", telecomMode: "sip" });
       await registerSipAgent(config, {
         onStateChange: async (state) => {
-          let status = "offline";
-          if (state === "Registered") status = "registered";
-          else if (state === "Unregistered") status = "unregistered";
-          else if (state === "Terminated") status = "failed";
+          const status = toRegistrationStatus(state);
+
+          if (!status) {
+            return;
+          }
+
           set({ sipStatus: status });
           try {
             await reportSipRegistration({

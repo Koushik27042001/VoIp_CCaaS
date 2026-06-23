@@ -21,6 +21,7 @@ export default function Dashboard() {
         <div className="main-scroll-container">
           <header className="topbar">
             <div>
+              
               <p className="eyebrow">VOIP COMMAND CENTER</p>
               <h1>High-velocity calling, lead ops and CRM sync</h1>
             </div>

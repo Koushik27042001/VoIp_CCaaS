@@ -13,20 +13,8 @@ import LeadAssignmentPage from "../pages/admin/LeadAssignmentPage";
 import AgentDashboard from "../pages/agent/AgentDashboard";
 import MyLeadsPage from "../pages/agent/MyLeadsPage";
 import CallHistoryPage from "../pages/agent/CallHistoryPage";
-
-function HomeRedirect() {
-  const { user, isAuthenticated, authLoading } = useAuthStore();
-
-  if (authLoading) {
-    return <div className="auth-loading-screen">Loading session...</div>;
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <Navigate to={user?.role === "admin" ? "/admin" : "/agent"} replace />;
-}
+import SIPTrunkPage from "../pages/settings/SIPTrunkPage";
+import AgentLayout from "../layouts/AgentLayout";
 
 export default function AppRoutes() {
   const restoreSession = useAuthStore((s) => s.restoreSession);
@@ -38,8 +26,8 @@ export default function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<HomeRedirect />} />
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<Navigate to="/agent" replace />} />
+        <Route path="/login" element={<Navigate to="/agent" replace />} />
         <Route path="/setup" element={<SetupAdminPage />} />
 
         <Route path="/admin" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
@@ -47,9 +35,17 @@ export default function AppRoutes() {
         <Route path="/admin/leads" element={<ProtectedRoute role="admin"><AdminLeadsPage /></ProtectedRoute>} />
         <Route path="/admin/assignments" element={<ProtectedRoute role="admin"><LeadAssignmentPage /></ProtectedRoute>} />
 
-        <Route path="/agent" element={<ProtectedRoute role="agent"><AgentDashboard /></ProtectedRoute>} />
-        <Route path="/agent/leads" element={<ProtectedRoute role="agent"><MyLeadsPage /></ProtectedRoute>} />
-        <Route path="/agent/calls" element={<ProtectedRoute role="agent"><CallHistoryPage /></ProtectedRoute>} />
+        <Route path="/agent" element={<AgentDashboard />} />
+        <Route path="/agent/leads" element={<MyLeadsPage />} />
+        <Route path="/agent/calls" element={<CallHistoryPage />} />
+        <Route
+          path="/agent/settings/sip-trunks"
+          element={
+            <AgentLayout>
+              <SIPTrunkPage />
+            </AgentLayout>
+          }
+        />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
