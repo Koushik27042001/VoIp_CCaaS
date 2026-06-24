@@ -21,6 +21,7 @@ export const reportSipRegistration = (payload) =>
   API.post("/sip/registration", payload);
 
 export const fetchSipHealth = () => API.get("/sip/health");
+export const fetchTelecomReadiness = () => API.get("/telecom/readiness");
 
 export const fetchSipTrunks = () => API.get("/sip-trunks");
 
