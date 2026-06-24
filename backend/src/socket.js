@@ -27,11 +27,21 @@ const resolveCallPayload = (socket, data = {}) => {
 export const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: process.env.SOCKET_CORS_ORIGIN || process.env.CORS_ORIGIN || "*",
+      origin: [
+        process.env.FRONTEND_URL,
+        "http://localhost:3000",
+      ],
+      credentials: true,
     },
-    maxHttpBufferSize: Number(process.env.SOCKET_MAX_HTTP_BUFFER_SIZE || 1e6),
-    pingTimeout: Number(process.env.SOCKET_PING_TIMEOUT_MS || 20000),
-    pingInterval: Number(process.env.SOCKET_PING_INTERVAL_MS || 25000),
+    maxHttpBufferSize: Number(
+      process.env.SOCKET_MAX_HTTP_BUFFER_SIZE || 1e6
+    ),
+    pingTimeout: Number(
+      process.env.SOCKET_PING_TIMEOUT_MS || 20000
+    ),
+    pingInterval: Number(
+      process.env.SOCKET_PING_INTERVAL_MS || 25000
+    ),
   });
 
   io.on("connection", (socket) => {
