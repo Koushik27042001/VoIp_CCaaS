@@ -171,6 +171,9 @@ export default function SIPTrunkPage() {
           <p className="eyebrow">Settings</p>
           <h2>SIP Trunks</h2>
           <p>Manage carrier credentials, registration settings and generated Asterisk trunk config.</p>
+          <p className="muted-copy" style={{ marginTop: "8px" }}>
+            Required only for Asterisk path. If you call via Twilio PSTN, SIP trunk fields are optional.
+          </p>
         </div>
         <div className="header-stats">
           <div><strong>{trunks.length}</strong><span>Total</span></div>
