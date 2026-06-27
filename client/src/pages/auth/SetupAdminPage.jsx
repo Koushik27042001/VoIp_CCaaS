@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/useAuthStore";
+import { fetchSetupStatus } from "../../api/api";
 
 export default function SetupAdminPage() {
   const navigate = useNavigate();
@@ -8,6 +9,8 @@ export default function SetupAdminPage() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [setupAvailable, setSetupAvailable] = useState(true);
+  const [statusLoading, setStatusLoading] = useState(true);
 
   if (!authLoading && isAuthenticated) {
     return <Navigate to="/" replace />;
@@ -17,8 +20,31 @@ export default function SetupAdminPage() {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
+  useEffect(() => {
+    let mounted = true;
+
+    fetchSetupStatus()
+      .then((res) => {
+        if (!mounted) return;
+        setSetupAvailable(Boolean(res.data?.canSetup));
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setSetupAvailable(true);
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setStatusLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (!setupAvailable) return;
     setSubmitting(true);
     setError("");
 
@@ -40,6 +66,11 @@ export default function SetupAdminPage() {
         <h1>Create Admin</h1>
         <p className="muted-copy">This endpoint only works while the database has no users.</p>
 
+        {!statusLoading && !setupAvailable ? (
+          <div className="auth-error">
+            Setup already completed. Please sign in with existing admin credentials.
+          </div>
+        ) : null}
         {error ? <div className="auth-error">{error}</div> : null}
 
         <label className="auth-field block">
@@ -55,7 +86,11 @@ export default function SetupAdminPage() {
           <input type="password" value={form.password} required minLength={8} onChange={(event) => updateForm("password", event.target.value)} />
         </label>
 
-        <button className="primary-button auth-submit" type="submit" disabled={submitting}>
+        <button
+          className="primary-button auth-submit"
+          type="submit"
+          disabled={submitting || !setupAvailable}
+        >
           {submitting ? "Creating..." : "Create Admin"}
         </button>
 

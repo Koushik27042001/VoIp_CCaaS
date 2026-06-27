@@ -39,6 +39,7 @@ export const login = (email, password) =>
   API.post("/auth/login", { email, password });
 
 export const setupAdmin = (payload) => API.post("/auth/setup", payload);
+export const fetchSetupStatus = () => API.get("/auth/setup-status");
 
 export const getMe = () => API.get("/auth/me");
 

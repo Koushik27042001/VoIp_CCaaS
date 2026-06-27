@@ -45,6 +45,14 @@ export const setupFirstAdmin = asyncHandler(async (req, res) => {
   });
 });
 
+export const getSetupStatus = asyncHandler(async (_req, res) => {
+  const count = await userRepo.countUsers();
+  res.json({
+    setupCompleted: count > 0,
+    canSetup: count === 0,
+  });
+});
+
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 

@@ -64,7 +64,13 @@ export default function CallPanel() {
       <div className="call-meta">
         <div>
           <span className="label">Status</span>
-          <strong>{activeCall.onHold ? "On hold" : "Connected"}</strong>
+          <strong>
+            {activeCall.onHold
+              ? "On hold"
+              : activeCall.phase === "dialing"
+                ? "Dialing"
+                : "Connected"}
+          </strong>
         </div>
         <div>
           <span className="label">Microphone</span>

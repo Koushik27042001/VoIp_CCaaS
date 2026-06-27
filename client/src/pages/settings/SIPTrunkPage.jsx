@@ -174,6 +174,10 @@ export default function SIPTrunkPage() {
           <p className="muted-copy" style={{ marginTop: "8px" }}>
             Required only for Asterisk path. If you call via Twilio PSTN, SIP trunk fields are optional.
           </p>
+          <p className="muted-copy" style={{ marginTop: "6px" }}>
+            For SIP-only calling: set <code>TWILIO_ENABLED=false</code>, keep AMI credentials valid, and ensure
+            each agent has a SIP extension provisioned.
+          </p>
         </div>
         <div className="header-stats">
           <div><strong>{trunks.length}</strong><span>Total</span></div>

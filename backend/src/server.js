@@ -1,12 +1,10 @@
-import dotenv from "dotenv";
+import "dotenv/config";
 import http from "http";
 import app from "./app.js";
 import { initSocket } from "./socket.js";
 import { connectDB } from "./config/db.js";
 import { registerEventListeners } from "./events/index.js";
 import logger from "./telemetry/logger.js";
-
-dotenv.config();
 
 const startServer = async () => {
   const isMockMode = process.env.USE_MOCK === "true";
@@ -27,7 +25,7 @@ const startServer = async () => {
 
   const preferredPort = Number(process.env.PORT || 5000);
   const autoPortFallback =
-    process.env.AUTO_PORT_FALLBACK !== "false" &&
+    process.env.AUTO_PORT_FALLBACK === "true" &&
     process.env.NODE_ENV !== "production";
   let listenPort = preferredPort;
   let portRetryCount = 0;

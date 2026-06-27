@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "VoIP CCaaS Backend - Call Center as a Service",
   "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
