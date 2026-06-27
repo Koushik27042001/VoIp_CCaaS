@@ -3,7 +3,10 @@ import { AppError } from "../../middlewares/error.middleware.js";
 import * as callRepo from "../../repositories/call.repository.js";
 import * as customerRepo from "../../repositories/customer.repository.js";
 import { dialOutbound, hangupOutbound } from "../../services/outboundCall.service.js";
-import { isTwilioClientEnabled } from "../../config/twilio.js";
+import {
+  isTwilioClientEnabled,
+  isTwilioClientCallingEnabled,
+} from "../../config/twilio.js";
 import {
   emitCallStarted,
   emitCallFailed,
@@ -37,8 +40,10 @@ export const makeCall = asyncHandler(async (req, res) => {
   });
 
   try {
+    const canUseClientCalling =
+      isTwilioClientEnabled() && isTwilioClientCallingEnabled();
     const useClientMode =
-      mode === "client" || (mode === "auto" && isTwilioClientEnabled());
+      canUseClientCalling && (mode === "client" || mode === "auto");
 
     const result = await dialOutbound({
       phone: normalizedPhone,
@@ -72,7 +77,17 @@ export const makeCall = asyncHandler(async (req, res) => {
       endTime: new Date(),
     });
 
-    emitCallFailed({ callId, phone: normalizedPhone, reason: err.message });
+    const providerAuthFailed = err?.code === 20003;
+    const reason = providerAuthFailed
+      ? "Twilio authentication failed. Re-check Account SID/Auth Token."
+      : err.message;
+
+    emitCallFailed({ callId, phone: normalizedPhone, reason });
+
+    if (providerAuthFailed) {
+      throw new AppError(reason, 400);
+    }
+
     throw err;
   }
 });

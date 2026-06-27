@@ -22,7 +22,7 @@ export const initTwilioDevice = async (token, { onStatusChange } = {}) => {
 
   device.on("registered", () => onStatusChange?.("registered"));
   device.on("unregistered", () => onStatusChange?.("unregistered"));
-  device.on("error", () => onStatusChange?.("failed"));
+  device.on("error", (error) => onStatusChange?.("failed", error));
 
   device.on("incoming", (connection) => {
     activeConnection = connection;
@@ -48,7 +48,7 @@ const wireConnectionEvents = (connection) => {
     }
     statusHandler?.("idle");
   });
-  connection.on("error", () => statusHandler?.("failed"));
+  connection.on("error", (error) => statusHandler?.("call_error", error));
 };
 
 export const connectTwilioOutbound = async ({ to, callId }) => {

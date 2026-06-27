@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/useAuthStore";
+import { fetchSetupStatus } from "../../api/api";
 import { User, Mail, Lock, KeyRound, ShieldAlert } from "lucide-react";
 
 export default function SetupAdminPage() {
@@ -9,6 +10,8 @@ export default function SetupAdminPage() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [setupAvailable, setSetupAvailable] = useState(true);
+  const [statusLoading, setStatusLoading] = useState(true);
 
   if (!authLoading && isAuthenticated) {
     return <Navigate to="/" replace />;
@@ -18,8 +21,31 @@ export default function SetupAdminPage() {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
+  useEffect(() => {
+    let mounted = true;
+
+    fetchSetupStatus()
+      .then((res) => {
+        if (!mounted) return;
+        setSetupAvailable(Boolean(res.data?.canSetup));
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setSetupAvailable(true);
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setStatusLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (!setupAvailable) return;
     setSubmitting(true);
     setError("");
 
@@ -63,6 +89,13 @@ export default function SetupAdminPage() {
         {/* Ambient Spots for Form side */}
         <div className="absolute top-1/3 right-1/4 h-64 w-64 rounded-full bg-violet-500/5 blur-[90px] pointer-events-none" />
         <div className="absolute bottom-1/3 left-1/4 h-64 w-64 rounded-full bg-cyan-500/5 blur-[90px] pointer-events-none" />
+
+        {!statusLoading && !setupAvailable ? (
+          <div className="auth-error flex items-center gap-3 border border-rose-300/20 bg-rose-500/10 px-4 py-3 rounded-2xl text-xs font-bold text-rose-300 mb-4 max-w-[440px] w-full">
+            <ShieldAlert size={16} className="shrink-0 text-rose-400 animate-pulse" />
+            <span>Setup already completed. Please sign in with existing admin credentials.</span>
+          </div>
+        ) : null}
 
         <form className="auth-card relative w-full max-w-[440px] border border-white/10 bg-slate-900/40 p-8 rounded-3xl shadow-glow backdrop-blur-2xl transition duration-500" onSubmit={handleSubmit}>
           {/* Brand Header */}
@@ -136,8 +169,7 @@ export default function SetupAdminPage() {
             </label>
           </div>
 
-          {/* Submit */}
-          <button className="primary-button auth-submit mt-6 w-full" type="submit" disabled={submitting}>
+          <button className="primary-button auth-submit mt-6 w-full" type="submit" disabled={submitting || !setupAvailable}>
             {submitting ? "Initializing cockpit..." : "Provision Admin Cockpit"}
           </button>
 

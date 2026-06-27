@@ -48,6 +48,15 @@ const toRegistrationStatus = (state) => {
   return null;
 };
 
+const nowLabel = () =>
+  new Date().toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+const isTwilioClientCallingEnabled =
+  process.env.REACT_APP_ENABLE_TWILIO_CLIENT_CALLING === "true";
+
 export const useStore = create((set, get) => ({
   activeView: "dialer",
   dialedNumber: "",
@@ -244,7 +253,6 @@ export const useStore = create((set, get) => ({
   bindSocketCallEvents: () => {
     if (get().socketEventsBound) return;
     const socket = getSocket();
-
     socket.on("call_ringing", (call) => {
       const currentUser = useAuthStore.getState().user;
       const currentUserId = currentUser?.id || currentUser?._id;
@@ -253,16 +261,27 @@ export const useStore = create((set, get) => ({
         return;
       }
 
+      const lead = get().leads.find((item) => item.phone === call.phone);
       set({
         isCalling: true,
         callingNumber: call.phone,
         callError: "",
+        activeCall: {
+          leadId: lead?.id ?? null,
+          name: lead?.name ?? call.phone,
+          company: lead?.company ?? "",
+          number: call.phone,
+          startedAt: Date.now(),
+          muted: false,
+          onHold: false,
+          phase: "dialing",
+        },
         activityFeed: [
           {
             id: `${Date.now()}-ring`,
             type: "call",
             text: `Ringing ${call.phone}`,
-            time: "Just now",
+            time: nowLabel(),
           },
           ...get().activityFeed.slice(0, 5),
         ],
@@ -294,13 +313,14 @@ export const useStore = create((set, get) => ({
           startedAt: Date.now(),
           muted: false,
           onHold: false,
+          phase: "connected",
         },
         activityFeed: [
           {
             id: `${Date.now()}-connected`,
             type: "call",
             text: `Connected to ${call.phone}`,
-            time: "Just now",
+            time: nowLabel(),
           },
           ...state.activityFeed.slice(0, 5),
         ],
@@ -327,7 +347,7 @@ export const useStore = create((set, get) => ({
             id: `${Date.now()}-end`,
             type: "call",
             text: "Call ended",
-            time: "Just now",
+            time: nowLabel(),
           },
           ...get().activityFeed.slice(0, 5),
         ],
@@ -354,7 +374,7 @@ export const useStore = create((set, get) => ({
             id: `${Date.now()}-fail`,
             type: "call",
             text: payload?.reason || "Call failed",
-            time: "Just now",
+            time: nowLabel(),
           },
           ...get().activityFeed.slice(0, 5),
         ],
@@ -371,24 +391,59 @@ export const useStore = create((set, get) => ({
 
     get().bindSocketCallEvents();
 
+    let twilioEnabled = false;
+
     try {
       const statusRes = await fetchTwilioStatus();
       const { clientEnabled, enabled } = statusRes.data.data || {};
+      twilioEnabled = Boolean(enabled);
 
-      if (clientEnabled) {
-        set({ twilioStatus: "registering", telecomMode: "twilio" });
-        const tokenRes = await fetchTwilioToken();
-        await initTwilioDevice(tokenRes.data.data.token, {
-          onStatusChange: (status) => {
-            if (status === "registered") {
-              set({ twilioStatus: "registered" });
-            } else if (status === "failed") {
-              set({ twilioStatus: "failed" });
-            }
-          },
-        });
-        set({ twilioStatus: "registered", telecomMode: "twilio" });
-        return;
+      if (clientEnabled && isTwilioClientCallingEnabled) {
+        try {
+          set({ twilioStatus: "registering", telecomMode: "twilio" });
+          const tokenRes = await fetchTwilioToken();
+          await initTwilioDevice(tokenRes.data.data.token, {
+            onStatusChange: (status, error) => {
+              if (status === "registered") {
+                set({ twilioStatus: "registered" });
+              } else if (status === "failed") {
+                set({ twilioStatus: "failed" });
+              } else if (status === "call_error") {
+                const code = error?.code ? ` (${error.code})` : "";
+                const message =
+                  error?.message
+                    ? `Call dropped${code}: ${error.message}`
+                    : `Call dropped${code}.`;
+                set({
+                  twilioStatus: "ready",
+                  activeCall: null,
+                  currentCallId: null,
+                  isCalling: false,
+                  callingNumber: "",
+                  callError: message,
+                  agentAvailability: "Available",
+                  activityFeed: [
+                    {
+                      id: `${Date.now()}-twilio-call-error`,
+                      type: "call",
+                      text: message,
+                      time: nowLabel(),
+                    },
+                    ...get().activityFeed.slice(0, 5),
+                  ],
+                });
+              }
+            },
+          });
+          set({ twilioStatus: "registered", telecomMode: "twilio" });
+          return;
+        } catch (_clientError) {
+          // Voice SDK failed, but REST PSTN outbound may still be usable.
+          if (twilioEnabled) {
+            set({ twilioStatus: "ready", telecomMode: "twilio", sipStatus: "offline" });
+            return;
+          }
+        }
       }
 
       if (enabled) {
@@ -396,7 +451,7 @@ export const useStore = create((set, get) => ({
         return;
       }
     } catch (_error) {
-      set({ twilioStatus: "failed" });
+      set({ twilioStatus: twilioEnabled ? "ready" : "failed" });
     }
 
     if (process.env.REACT_APP_AUTO_SIP_REGISTER === "false") {
@@ -449,10 +504,21 @@ export const useStore = create((set, get) => ({
       isCalling: true,
       callingNumber: phoneNumber,
       callError: "",
+      activeCall: {
+        leadId: lead?.id ?? null,
+        name: lead?.name ?? phoneNumber,
+        company: lead?.company ?? "",
+        number: phoneNumber,
+        startedAt: Date.now(),
+        muted: false,
+        onHold: false,
+        phase: "dialing",
+      },
     });
 
     try {
-      const useClient = state.twilioStatus === "registered";
+      const useClient =
+        isTwilioClientCallingEnabled && state.twilioStatus === "registered";
       const response = await placeOutboundCall(
         phoneNumber,
         useClient ? "client" : "auto"
@@ -464,9 +530,19 @@ export const useStore = create((set, get) => ({
       if (useTwilioClient) {
         await connectTwilioOutbound({ to: phoneNumber, callId });
         set({
-          isCalling: true,
+          isCalling: false,
           callingNumber: phoneNumber,
           agentAvailability: "On Call",
+          activeCall: {
+            leadId: lead?.id ?? null,
+            name: lead?.name ?? phoneNumber,
+            company: lead?.company ?? "",
+            number: phoneNumber,
+            startedAt: Date.now(),
+            muted: false,
+            onHold: false,
+            phase: "connected",
+          },
         });
         return response.data;
       }
@@ -493,9 +569,19 @@ export const useStore = create((set, get) => ({
       }
 
       set({
-        isCalling: true,
+        isCalling: false,
         callingNumber: phoneNumber,
         agentAvailability: "On Call",
+        activeCall: {
+          leadId: lead?.id ?? null,
+          name: lead?.name ?? phoneNumber,
+          company: lead?.company ?? "",
+          number: phoneNumber,
+          startedAt: Date.now(),
+          muted: false,
+          onHold: false,
+          phase: "connected",
+        },
       });
 
       return response.data;
@@ -506,6 +592,7 @@ export const useStore = create((set, get) => ({
         isCalling: false,
         callingNumber: "",
         currentCallId: null,
+        activeCall: null,
         callError: message,
         agentAvailability: "Available",
         activityFeed: [
@@ -513,7 +600,7 @@ export const useStore = create((set, get) => ({
             id: `${Date.now()}-fail`,
             type: "call",
             text: message,
-            time: "Just now",
+            time: nowLabel(),
           },
           ...get().activityFeed.slice(0, 5),
         ],
@@ -556,7 +643,7 @@ export const useStore = create((set, get) => ({
           id: `${Date.now()}-end`,
           type: "call",
           text: "Call ended",
-          time: "Just now",
+          time: nowLabel(),
         },
         ...get().activityFeed.slice(0, 5),
       ],

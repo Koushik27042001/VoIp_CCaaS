@@ -21,14 +21,16 @@ API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      const isAuthRoute = error.config?.url?.includes("/auth/login") ||
-        error.config?.url?.includes("/auth/setup");
+      const path = error.config?.url || "";
+      const isExpectedAuthFailure =
+        path.includes("/auth/login") || path.includes("/auth/setup");
 
-      if (!isAuthRoute) {
+      // Keep users on the current page for non-auth API failures.
+      // Session cleanup should happen only when /auth/me confirms token is invalid.
+      if (path.includes("/auth/me")) {
         localStorage.removeItem("token");
-        if (window.location.pathname !== "/login") {
-          window.location.href = "/login";
-        }
+      } else if (isExpectedAuthFailure) {
+        // Ignore 401 on login/setup; UI already handles these messages.
       }
     }
     return Promise.reject(error);

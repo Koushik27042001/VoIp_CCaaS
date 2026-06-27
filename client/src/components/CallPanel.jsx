@@ -83,7 +83,13 @@ export default function CallPanel() {
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="border border-white/5 bg-white/[0.02] rounded-2xl p-3">
           <span className="label text-[9px] text-slate-500 uppercase tracking-widest block mb-0.5">SIP status</span>
-          <strong className="text-xs text-white">{activeCall.onHold ? "On Hold" : "Connected"}</strong>
+          <strong className="text-xs text-white">
+            {activeCall.onHold
+              ? "On Hold"
+              : activeCall.phase === "dialing"
+                ? "Dialing"
+                : "Connected"}
+          </strong>
         </div>
         <div className="border border-white/5 bg-white/[0.02] rounded-2xl p-3">
           <span className="label text-[9px] text-slate-500 uppercase tracking-widest block mb-0.5">Microphone</span>
