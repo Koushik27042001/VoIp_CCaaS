@@ -1,8 +1,9 @@
-import { execFile } from "child_process";
+import { execFile } from "node:child_process";
 
 const reloadCommands = {
   SIP: "sip reload",
   PJSIP: "pjsip reload",
+  DIALPLAN: "dialplan reload",
 };
 
 export default function reloadAsterisk(protocol = "PJSIP") {
@@ -11,6 +12,10 @@ export default function reloadAsterisk(protocol = "PJSIP") {
       status: "skipped",
       message: "Asterisk reload skipped. Set ASTERISK_RELOAD_ENABLED=true to enable.",
     });
+  }
+
+  if (Array.isArray(protocol)) {
+    return Promise.all(protocol.map((p) => reloadAsterisk(p)));
   }
 
   const command = reloadCommands[protocol] || reloadCommands.PJSIP;

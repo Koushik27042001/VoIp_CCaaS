@@ -17,8 +17,11 @@ const emit = (handlers, eventName, payload) => {
 
 export const getActiveSipSession = () => activeSession;
 
-export const createSipClient = (handlers = {}) => {
-  const config = getSipConfig();
+export const createSipClient = (customConfig = null, handlers = {}) => {
+  const baseConfig = getSipConfig();
+  const config = customConfig
+    ? { ...baseConfig, ...customConfig, enabled: true }
+    : baseConfig;
 
   if (!config.enabled) {
     throw new Error("SIP is disabled. Set REACT_APP_SIP_ENABLED=true to enable SIP.js.");
@@ -65,6 +68,10 @@ export const createSipClient = (handlers = {}) => {
 
   registerer = new Registerer(userAgent);
 
+  registerer.stateChange.addListener((state) => {
+    emit(handlers, "onStateChange", state);
+  });
+
   return {
     config,
     userAgent,
@@ -90,14 +97,22 @@ export const wireSessionEvents = (session, handlers = {}) => {
   });
 };
 
-export const registerSipAgent = async (handlers = {}) => {
+export const registerSipAgent = async (customConfig = null, handlers = {}) => {
+  let config = customConfig;
+  let eventHandlers = handlers;
+
+  if (customConfig && (typeof customConfig.onStateChange === "function" || typeof customConfig.registered === "function")) {
+    eventHandlers = customConfig;
+    config = null;
+  }
+
   if (!userAgent || !registerer) {
-    createSipClient(handlers);
+    createSipClient(config, eventHandlers);
   }
 
   await userAgent.start();
   await registerer.register();
-  emit(handlers, "registered", getSipConfig());
+  emit(eventHandlers, "registered", config || getSipConfig());
 
   return {
     userAgent,

@@ -10,13 +10,14 @@ import {
   fetchSipConfig,
   reportSipRegistration,
 } from "../api/api";
-import { registerSipAgent, unregisterSipAgent } from "../telecom/sipClient";
+import { registerSipAgent, unregisterSipAgent, makeSipCall, endSipCall } from "../telecom/sipClient";
 import {
   initTwilioDevice,
   connectTwilioOutbound,
   disconnectTwilioCall,
   destroyTwilioDevice,
 } from "../telecom/twilioVoice";
+import { useAuthStore } from "./useAuthStore";
 
 const agentStatuses = [
   { id: "ag-1", name: "Ritika", status: "Available", calls: 14 },
@@ -245,6 +246,13 @@ export const useStore = create((set, get) => ({
     const socket = getSocket();
 
     socket.on("call_ringing", (call) => {
+      const currentUser = useAuthStore.getState().user;
+      const currentUserId = currentUser?.id || currentUser?._id;
+      const isDbId = (id) => typeof id === "string" && id.match(/^[a-f\d]{24}$/i);
+      if (call && isDbId(call.agentId) && isDbId(currentUserId) && String(call.agentId) !== String(currentUserId)) {
+        return;
+      }
+
       set({
         isCalling: true,
         callingNumber: call.phone,
@@ -262,6 +270,13 @@ export const useStore = create((set, get) => ({
     });
 
     socket.on("call_connected", (call) => {
+      const currentUser = useAuthStore.getState().user;
+      const currentUserId = currentUser?.id || currentUser?._id;
+      const isDbId = (id) => typeof id === "string" && id.match(/^[a-f\d]{24}$/i);
+      if (call && isDbId(call.agentId) && isDbId(currentUserId) && String(call.agentId) !== String(currentUserId)) {
+        return;
+      }
+
       const state = get();
       const lead = state.leads.find((item) => item.phone === call.phone);
 
@@ -292,7 +307,14 @@ export const useStore = create((set, get) => ({
       });
     });
 
-    socket.on("call_ended", () => {
+    socket.on("call_ended", (call) => {
+      const currentUser = useAuthStore.getState().user;
+      const currentUserId = currentUser?.id || currentUser?._id;
+      const isDbId = (id) => typeof id === "string" && id.match(/^[a-f\d]{24}$/i);
+      if (call && isDbId(call.agentId) && isDbId(currentUserId) && String(call.agentId) !== String(currentUserId)) {
+        return;
+      }
+
       set({
         activeCall: null,
         currentCallId: null,
@@ -313,6 +335,13 @@ export const useStore = create((set, get) => ({
     });
 
     socket.on("call_failed", (payload) => {
+      const currentUser = useAuthStore.getState().user;
+      const currentUserId = currentUser?.id || currentUser?._id;
+      const isDbId = (id) => typeof id === "string" && id.match(/^[a-f\d]{24}$/i);
+      if (payload && isDbId(payload.agentId) && isDbId(currentUserId) && String(payload.agentId) !== String(currentUserId)) {
+        return;
+      }
+
       set({
         activeCall: null,
         currentCallId: null,
@@ -442,6 +471,27 @@ export const useStore = create((set, get) => ({
         return response.data;
       }
 
+      if (state.sipStatus === "registered") {
+        await makeSipCall(phoneNumber, {
+          onCallEstablished: () => {
+            set({
+              isCalling: true,
+              callingNumber: phoneNumber,
+              agentAvailability: "On Call",
+            });
+          },
+          onCallTerminated: () => {
+            set({
+              isCalling: false,
+              callingNumber: "",
+              currentCallId: null,
+              agentAvailability: "Available",
+            });
+          },
+        });
+        return response.data;
+      }
+
       set({
         isCalling: true,
         callingNumber: phoneNumber,
@@ -472,9 +522,17 @@ export const useStore = create((set, get) => ({
     }
   },
   endTelecomCall: async () => {
-    const { currentCallId } = get();
+    const { currentCallId, sipStatus } = get();
 
     disconnectTwilioCall();
+
+    if (sipStatus === "registered") {
+      try {
+        await endSipCall();
+      } catch (_error) {
+        // best-effort
+      }
+    }
 
     if (currentCallId) {
       try {
