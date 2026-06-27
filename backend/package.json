@@ -4,11 +4,7 @@
   "description": "VoIP CCaaS Backend - Call Center as a Service",
   "type": "module",
   "engines": {
-<<<<<<< HEAD
-    "node": "22.x"
-=======
-    "node": "20.x"
->>>>>>> 13ec89ce1c34b40fa4f4cb2bb6cc6a2fe7261318
+    "node": "24.x"
   },
   "main": "src/server.js",
   "scripts": {
