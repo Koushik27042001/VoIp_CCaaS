@@ -4,7 +4,11 @@
   "description": "VoIP CCaaS Backend - Call Center as a Service",
   "type": "module",
   "engines": {
+<<<<<<< HEAD
     "node": "22.x"
+=======
+    "node": "20.x"
+>>>>>>> 13ec89ce1c34b40fa4f4cb2bb6cc6a2fe7261318
   },
   "main": "src/server.js",
   "scripts": {
@@ -29,6 +33,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.4.1",
     "pino": "^10.3.1",

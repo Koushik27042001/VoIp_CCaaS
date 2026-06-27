@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import rateLimit from "express-rate-limit";
 import authRoutes from "./modules/auth/auth.routes.js";
 import userRoutes from "./modules/users/user.routes.js";
 import customerRoutes from "./modules/customers/customer.routes.js";
@@ -17,8 +18,34 @@ import { metrics } from "./telemetry/metrics.js";
 import { getTelecomStatus as getOutboundTelecomStatus } from "./services/outboundCall.service.js";
 
 const app = express();
+app.set("trust proxy", 1);
 
-app.use(cors());
+const allowedOrigins = [
+  "http://localhost:3000",
+  process.env.FRONTEND_URL,
+];
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS not allowed"));
+      }
+    },
+    credentials: true,
+  })
+);
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+});
+
+app.use(limiter);
 
 // Twilio webhooks must be mounted before global body parsers for signature validation.
 app.use("/api/webhooks", webhookRoutes);
