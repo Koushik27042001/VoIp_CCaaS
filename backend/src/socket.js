@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
 import logger from "./utils/logger.js";
+import { getAllowedFrontendOrigins } from "./config/frontendOrigins.js";
 
 let io;
 
@@ -27,10 +28,7 @@ const resolveCallPayload = (socket, data = {}) => {
 export const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: [
-        process.env.FRONTEND_URL,
-        "http://localhost:3000",
-      ],
+      origin: getAllowedFrontendOrigins(),
       credentials: true,
     },
     maxHttpBufferSize: Number(

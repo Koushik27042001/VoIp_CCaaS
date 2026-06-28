@@ -16,21 +16,15 @@ import webhookRoutes from "./modules/webhooks/webhook.routes.js";
 import { errorHandler, notFound } from "./middlewares/error.middleware.js";
 import { metrics } from "./telemetry/metrics.js";
 import { getTelecomStatus as getOutboundTelecomStatus } from "./services/outboundCall.service.js";
+import { isAllowedOrigin } from "./config/frontendOrigins.js";
 
 const app = express();
 app.set("trust proxy", 1);
 
-const allowedOrigins = [
-  "http://localhost:3000",
-  process.env.FRONTEND_URL,
-];
-
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true);
       } else {
         callback(new Error("CORS not allowed"));
