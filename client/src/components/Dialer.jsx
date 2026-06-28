@@ -1,4 +1,4 @@
-import { Delete, PhoneCall } from "lucide-react";
+import { Delete, PhoneCall, Wifi, WifiOff, Info } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { useStore } from "../store/useStore";
@@ -17,17 +17,21 @@ export default function Dialer() {
   const twilioStatus = useStore((state) => state.twilioStatus);
   const isCalling = useStore((state) => state.isCalling);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const initTelecom = useStore((state) => state.initTelecom);
+  const disconnectTelecom = useStore((state) => state.disconnectTelecom);
   const [readiness, setReadiness] = useState(null);
 
   const voiceStatus =
     twilioStatus === "registered" || twilioStatus === "ready"
       ? twilioStatus
       : sipStatus;
+  const isOnline = voiceStatus === "registered" || voiceStatus === "ready";
+  
   const canCall =
     dialedNumber.trim().length > 0 &&
     isAuthenticated &&
     !isCalling &&
-    (voiceStatus === "registered" || voiceStatus === "ready");
+    isOnline;
 
   useEffect(() => {
     let mounted = true;
@@ -51,11 +55,11 @@ export default function Dialer() {
     if (!isAuthenticated) return "Login required before placing calls.";
     if (!dialedNumber.trim()) return "Enter a destination number.";
     if (isCalling) return "Call is already in progress.";
-    if (voiceStatus !== "registered" && voiceStatus !== "ready") {
-      return "Voice is offline. Check Twilio/Asterisk setup.";
+    if (!isOnline) {
+      return "Voice is offline. Click status badge to connect.";
     }
     return "";
-  }, [dialedNumber, isAuthenticated, isCalling, voiceStatus]);
+  }, [dialedNumber, isAuthenticated, isCalling, isOnline]);
 
   const handleCall = async () => {
     if (!canCall) return;
@@ -67,56 +71,92 @@ export default function Dialer() {
   };
 
   return (
-    <section className="panel dialer-panel">
-      <div className="panel-header compact">
+    <section className="panel dialer-panel border border-white/10 bg-slate-900/40 rounded-[28px] p-6 backdrop-blur-xl shadow-panel">
+      {/* Panel Header */}
+      <div className="flex w-full items-start justify-between gap-4 mb-5">
         <div>
-          <p className="eyebrow">Smart Dialer</p>
-          <h2>New Conversation</h2>
+          <p className="eyebrow text-cyan-300 tracking-[0.2em] text-[10px]">Smart Dialer</p>
+          <h2 className="text-xl font-black text-white mt-1">Manual Console</h2>
         </div>
-        <span className={`pill ${voiceStatus === "registered" || voiceStatus === "ready" ? "ai" : ""}`}>
-          Voice {voiceStatus}
-        </span>
+        <button
+          type="button"
+          onClick={isOnline ? disconnectTelecom : initTelecom}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-bold transition duration-200 ${isOnline ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20" : "border-rose-300/30 bg-rose-400/10 text-rose-300 hover:bg-rose-500/25"}`}
+          title={isOnline ? "Disconnect Voice" : "Connect Voice"}
+        >
+          {isOnline ? <Wifi size={12} className="animate-pulse" /> : <WifiOff size={12} />}
+          <span>{isOnline ? `Voice: ${voiceStatus}` : "Voice Offline"}</span>
+        </button>
       </div>
 
-      <label className={`dialer-input ${dialedNumber ? "has-value" : ""}`}>
+      {/* Input Display */}
+      <div className={`dialer-input rounded-2xl border border-white/10 bg-slate-950/50 p-4 mb-4 transition focus-within:border-cyan-500/50 focus-within:shadow-glow flex items-center justify-between`}>
         <input
           value={dialedNumber}
           placeholder="+91 98765 43210"
+          className="w-full bg-transparent text-center text-xl font-bold text-white tracking-widest outline-none"
           onChange={(event) => setDialedNumber(event.target.value.replace(/[^0-9*#+\s]/g, ""))}
         />
-      </label>
+        {dialedNumber && (
+          <button 
+            type="button" 
+            onClick={backspaceDialedNumber} 
+            className="text-slate-500 hover:text-white transition p-1"
+            title="Backspace"
+          >
+            <Delete size={18} />
+          </button>
+        )}
+      </div>
 
-      <div className="keypad-grid">
+      {/* Keypad */}
+      <div className="grid grid-cols-3 gap-2.5 mb-5">
         {keys.map((key) => (
           <motion.button
             type="button"
             key={key}
-            className="keypad-button"
+            className="h-12 rounded-2xl border border-white/5 bg-white/[0.04] text-lg font-bold text-slate-200 hover:border-cyan-500/40 hover:bg-cyan-500/10 hover:text-white transition duration-200"
             onClick={() => appendDigit(key)}
-            whileTap={{ scale: 0.94 }}
+            whileTap={{ scale: 0.93 }}
           >
             {key}
           </motion.button>
         ))}
       </div>
 
-      <div className="dialer-actions">
-        <button className="ghost-button" type="button" onClick={backspaceDialedNumber}>
-          <Delete size={15} />
-          Delete
+      {/* Action triggers */}
+      <div className="flex gap-3">
+        <button 
+          className="ghost-button flex-1 py-3 rounded-2xl text-xs font-black" 
+          type="button" 
+          disabled={!dialedNumber}
+          onClick={() => setDialedNumber("")}
+        >
+          Clear
         </button>
-        <button className="primary-button" type="button" disabled={!canCall} onClick={handleCall}>
-          <PhoneCall size={15} />
-          {isCalling ? "Calling..." : "Place Call"}
+        <button 
+          className={`primary-button flex-[2] py-3 rounded-2xl text-xs font-black gap-2 ${!canCall ? "opacity-50 cursor-not-allowed" : ""}`} 
+          type="button" 
+          disabled={!canCall} 
+          onClick={handleCall}
+        >
+          <PhoneCall size={14} />
+          {isCalling ? "Calling..." : "Place Outbound"}
         </button>
       </div>
+
+      {/* System Helper copy */}
       {!canCall && disabledReason ? (
-        <p className="muted-copy" style={{ marginTop: "10px" }}>{disabledReason}</p>
+        <div className="mt-3 flex items-start gap-2 text-slate-500 text-[11px] leading-relaxed bg-white/[0.02] border border-white/5 rounded-xl p-2.5">
+          <Info size={14} className="shrink-0 text-slate-400 mt-0.5" />
+          <span>{disabledReason}</span>
+        </div>
       ) : null}
+
       {readiness?.ready === false && readiness?.blockers?.length ? (
-        <p className="muted-copy" style={{ marginTop: "6px" }}>
-          Readiness blocker: {readiness.blockers[0]}
-        </p>
+        <div className="mt-2 text-rose-300 text-[11px] leading-relaxed bg-rose-500/5 border border-rose-500/10 rounded-xl p-2.5">
+          <strong>Blocker:</strong> {readiness.blockers[0]}
+        </div>
       ) : null}
     </section>
   );

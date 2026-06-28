@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { buildSipRuntimeConfig } from "../telecom/sipRouting.js";
+import reloadAsterisk from "./reloadAsterisk.js";
 
 const defaultAsteriskDir =
   process.env.NODE_ENV === "production"
@@ -41,10 +42,13 @@ export const generateRuntimeConfig = async () => {
     await writeAtomic(file.filePath, file.content);
   }
 
+  const reload = await reloadAsterisk(["PJSIP", "DIALPLAN"]);
+
   return {
     generatedAt: new Date().toISOString(),
     agents: config.agents.map(({ password, ...agent }) => agent),
     files: files.map(({ content, ...file }) => file),
+    reload,
   };
 };
 

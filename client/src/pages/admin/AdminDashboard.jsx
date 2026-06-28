@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "../../layouts/AdminLayout";
 import StatCard from "../../components/StatCard";
+import DashboardCharts from "../../components/DashboardCharts";
 import { fetchAgents, fetchLeadAssignments, fetchLeads } from "../../api/api";
 
 export default function AdminDashboard() {
@@ -40,6 +41,11 @@ export default function AdminDashboard() {
           <StatCard title="Leads Loaded" value={leads.length} accent="from-emerald-400 to-cyan-500" />
           <StatCard title="Assignments" value={assignments.length} accent="from-amber-300 to-rose-500" />
         </div>
+
+        {/* Visual Charts section */}
+        <section className="mt-6">
+          <DashboardCharts agents={agents} leads={leads} assignments={assignments} />
+        </section>
       </div>
     </AdminLayout>
   );
