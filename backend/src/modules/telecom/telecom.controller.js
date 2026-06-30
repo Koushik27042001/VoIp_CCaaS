@@ -2,6 +2,7 @@ import { getAsteriskSnapshot } from "../../services/telecom/asteriskManager.js";
 import { buildSipRuntimeConfig } from "../../services/telecom/sipRouting.js";
 import getTrunkHealth from "../../services/telecom/trunkHealth.js";
 import generateRuntimeConfig from "../../services/asterisk/generateRuntimeConfig.js";
+import * as asteriskAdapter from "../../adapters/asterisk.adapter.js";
 import { asteriskConfig, isAsteriskEnabled } from "../../config/asterisk.js";
 import {
   twilioConfig,
@@ -64,7 +65,7 @@ export const getTrunksHealth = async (_req, res, next) => {
   }
 };
 
-export const getTelecomReadiness = (_req, res) => {
+export const getTelecomReadiness = async (_req, res) => {
   const sharedChecks = [
     check("MONGO_URI", Boolean(process.env.MONGO_URI), "Required for user/extension lookup"),
     check("JWT_SECRET", Boolean(process.env.JWT_SECRET), "Required for protected call APIs"),
@@ -100,8 +101,16 @@ export const getTelecomReadiness = (_req, res) => {
     check("TWILIO_TWIML_APP_SID", Boolean(twilioConfig.twimlAppSid)),
   ];
 
+  const asteriskRuntime =
+    isAsteriskEnabled() && asteriskChecks.every((x) => x.ok)
+      ? await asteriskAdapter.ping()
+      : { ok: false, skipped: true, reason: "Asterisk is not enabled in env" };
+
   const sharedReady = sharedChecks.every((x) => x.ok);
-  const asteriskReady = isAsteriskEnabled() && asteriskChecks.every((x) => x.ok);
+  const asteriskReady =
+    isAsteriskEnabled() &&
+    asteriskChecks.every((x) => x.ok) &&
+    Boolean(asteriskRuntime.ok);
   const twilioReady = isTwilioEnabled() && twilioChecks.every((x) => x.ok);
   const twilioClientReady =
     isTwilioClientEnabled() &&
@@ -118,7 +127,12 @@ export const getTelecomReadiness = (_req, res) => {
         : "Not ready. Resolve blockers.",
     mode: process.env.USE_MOCK === "true" ? "mock" : "production",
     providers: {
-      asterisk: { enabled: isAsteriskEnabled(), ready: asteriskReady, checks: asteriskChecks },
+      asterisk: {
+        enabled: isAsteriskEnabled(),
+        ready: asteriskReady,
+        checks: asteriskChecks,
+        runtime: asteriskRuntime,
+      },
       twilioPstn: { enabled: isTwilioEnabled(), ready: twilioReady, checks: twilioChecks },
       twilioClient: {
         enabled: isTwilioClientEnabled(),
@@ -129,6 +143,9 @@ export const getTelecomReadiness = (_req, res) => {
     sharedChecks,
     blockers: [
       ...sharedChecks.filter((x) => !x.ok).map((x) => x.name),
+      ...(isAsteriskEnabled() && !asteriskRuntime.ok
+        ? [`ASTERISK_AMI_CONNECTION: ${asteriskRuntime.error || "Connection failed"}`]
+        : []),
       ...(providerReady ? [] : ["No telecom provider is fully configured."]),
     ],
   });

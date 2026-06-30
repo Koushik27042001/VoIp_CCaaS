@@ -1,6 +1,7 @@
 import { io } from "socket.io-client";
+import { resolveSocketBaseUrl } from "../config/runtimeUrls";
 
-const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "http://localhost:5000";
+const SOCKET_URL = resolveSocketBaseUrl();
 const SOCKET_KEY = "__VOIP_CCAAS_SOCKET__";
 const LISTENERS_KEY = "__VOIP_CCAAS_SOCKET_LISTENERS__";
 
