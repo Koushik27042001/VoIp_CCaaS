@@ -98,9 +98,9 @@ export default function CallPanel() {
       </div>
 
       {/* Control Actions Row */}
-      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2.5">
+      <div className="grid grid-cols-2 gap-2.5">
         <button 
-          className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-bold transition duration-200 sm:flex-1 ${activeCall.muted ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-300" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-cyan-400/40 hover:bg-cyan-500/5"}`} 
+          className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-bold transition duration-200 ${activeCall.muted ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-300" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-cyan-400/40 hover:bg-cyan-500/5"}`} 
           type="button" 
           onClick={toggleMute}
         >
@@ -108,7 +108,7 @@ export default function CallPanel() {
           <span>{activeCall.muted ? "Unmute" : "Mute"}</span>
         </button>
         <button 
-          className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-bold transition duration-200 sm:flex-1 ${activeCall.onHold ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-300" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-cyan-400/40 hover:bg-cyan-500/5"}`} 
+          className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-bold transition duration-200 ${activeCall.onHold ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-300" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-cyan-400/40 hover:bg-cyan-500/5"}`} 
           type="button" 
           onClick={toggleHold}
         >
@@ -116,14 +116,14 @@ export default function CallPanel() {
           <span>{activeCall.onHold ? "Resume" : "Hold"}</span>
         </button>
         <button 
-          className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-white/10 bg-white/[0.03] text-slate-300 hover:border-cyan-400/40 hover:bg-cyan-500/5 text-xs font-bold transition duration-200 sm:flex-1" 
+          className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-white/10 bg-white/[0.03] text-slate-300 hover:border-cyan-400/40 hover:bg-cyan-500/5 text-xs font-bold transition duration-200" 
           type="button"
         >
           <Volume2 size={14} />
           <span>Monitor</span>
         </button>
         <button 
-          className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 text-xs font-bold transition duration-200 w-full sm:w-auto" 
+          className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 text-xs font-bold transition duration-200" 
           type="button" 
           onClick={endTelecomCall}
         >

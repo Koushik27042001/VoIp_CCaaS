@@ -63,7 +63,7 @@ export default function LoginPage() {
         <div className="absolute top-1/3 right-1/4 h-64 w-64 rounded-full bg-cyan-500/5 blur-[90px] pointer-events-none" />
         <div className="absolute bottom-1/3 left-1/4 h-64 w-64 rounded-full bg-purple-500/5 blur-[90px] pointer-events-none" />
 
-        <form className="auth-card relative w-full max-w-[420px] border border-white/10 bg-slate-900/40 p-8 rounded-3xl shadow-glow backdrop-blur-2xl transition duration-500" onSubmit={handleSubmit}>
+        <form className="relative w-full max-w-[420px] border border-white/12 rounded-3xl shadow-glow backdrop-blur-2xl transition duration-500" style={{background:'rgba(15,23,42,0.88)', padding:'32px'}} onSubmit={handleSubmit}>
           {/* Brand Header */}
           <div className="flex flex-col items-center text-center mb-6">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 via-violet-500 to-fuchsia-500 p-px shadow-glow mb-4">

@@ -41,7 +41,7 @@ export default function AdminAgentsPage() {
         <section className="panel">
           <p className="eyebrow">Identity Ops</p>
           <h1 className="mt-2 text-3xl font-black">Create Agent</h1>
-          <p className="muted-copy mt-2">Admins can provision agent or admin accounts.</p>
+          <p className="muted-copy mt-2">Admins can provision agent accounts.</p>
 
           {message ? <div className="auth-success">{message}</div> : null}
           {error ? <div className="auth-error">{error}</div> : null}
@@ -58,13 +58,6 @@ export default function AdminAgentsPage() {
             <label className="auth-field block">
               <span>Password</span>
               <input type="password" value={form.password} required minLength={8} onChange={(event) => updateForm("password", event.target.value)} />
-            </label>
-            <label className="auth-field block">
-              <span>Role</span>
-              <select value={form.role} onChange={(event) => updateForm("role", event.target.value)}>
-                <option value="agent">Agent</option>
-                <option value="admin">Admin</option>
-              </select>
             </label>
             <button className="primary-button w-full" type="submit" disabled={submitting}>
               {submitting ? "Creating..." : "Create Account"}

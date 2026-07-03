@@ -120,9 +120,9 @@ export default function LeadPanel() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 2xl:grid-cols-12 gap-6">
         {/* Left Side: Leads List */}
-        <div className="lg:col-span-5 flex flex-col justify-between min-h-[460px]">
+        <div className="2xl:col-span-5 flex flex-col justify-between min-h-[460px]">
           {leads.length === 0 ? (
             <div className="flex items-center justify-center text-center p-6 border border-white/5 bg-slate-950/20 rounded-2xl text-xs text-slate-500 leading-relaxed flex-1">
               {leadsLoading
@@ -199,7 +199,7 @@ export default function LeadPanel() {
         </div>
 
         {/* Right Side: Lead Detail view */}
-        <div className="lg:col-span-7 border border-white/5 bg-slate-950/20 rounded-[22px] p-5">
+        <div className="2xl:col-span-7 border border-white/5 bg-slate-950/20 rounded-[22px] p-5">
           {selectedLead ? (
             <div className="space-y-5">
               {/* Header profile */}

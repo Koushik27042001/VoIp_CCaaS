@@ -23,8 +23,8 @@ const handleDuplicateKey = (err) => {
 export const createAgent = asyncHandler(async (req, res) => {
   const { name, email, password, role, status } = req.body;
 
-  if (role === "admin" && req.user.role !== "admin") {
-    throw new AppError("Only admins can create admin accounts", 403);
+  if (role === "admin") {
+    throw new AppError("Creation of additional admin accounts is restricted. Only one admin is allowed.", 403);
   }
 
   const existing = await userRepo.findUserByEmail(email);

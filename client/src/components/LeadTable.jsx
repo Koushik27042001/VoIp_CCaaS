@@ -1,6 +1,6 @@
 export default function LeadTable({ leads = [], actions }) {
   return (
-    <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.05] shadow-panel">
+    <div className="overflow-x-auto rounded-3xl border border-white/10 bg-white/[0.05] shadow-panel">
       <table className="w-full min-w-[760px] text-left text-sm">
         <thead className="bg-slate-950/50 text-xs uppercase tracking-[0.2em] text-slate-400">
           <tr>

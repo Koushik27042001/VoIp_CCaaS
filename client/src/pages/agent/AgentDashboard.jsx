@@ -92,7 +92,7 @@ const STYLES = `
 
   .ad-workspace {
     display: grid;
-    grid-template-columns: minmax(300px, 340px) minmax(0, 1fr) minmax(280px, 1fr);
+    grid-template-columns: minmax(300px, 340px) minmax(0, 1fr) minmax(280px, 320px);
     grid-template-areas: "dialer leads crm";
     gap: 16px;
     align-items: start;

@@ -4,7 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { useAuthStore } from "../store/useAuthStore";
 
-import LoginPage from "../pages/auth/LoginPage";
+import LoginPage from "../pages/LoginPage";
 import SetupAdminPage from "../pages/auth/SetupAdminPage";
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import AdminAgentsPage from "../pages/admin/AdminAgentsPage";

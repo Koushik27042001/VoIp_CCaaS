@@ -104,7 +104,7 @@ export default function CRMPanel() {
                     <Icon size={12} className="shrink-0" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-slate-200 leading-normal truncate">{item.text}</p>
+                    <p className="font-semibold text-slate-200 leading-normal whitespace-normal break-words">{item.text}</p>
                     <span className="block text-[9px] text-slate-500 mt-1">{item.time}</span>
                   </div>
                 </div>
