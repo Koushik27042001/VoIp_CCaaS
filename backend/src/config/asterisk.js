@@ -25,10 +25,19 @@ export const asteriskConfig = {
   },
 };
 
-export const isAsteriskEnabled = () =>
-  Boolean(
-    process.env.ASTERISK_AMI_PASSWORD &&
-      process.env.ASTERISK_AMI_USER
-  );
+const hasAmiCredentials = () =>
+  Boolean(process.env.ASTERISK_AMI_PASSWORD && process.env.ASTERISK_AMI_USER);
+
+export const isAsteriskEnabled = () => {
+  const toggle = (process.env.ASTERISK_ENABLED || "").trim().toLowerCase();
+  const isProduction = process.env.NODE_ENV === "production";
+
+  if (toggle === "false") return false;
+  if (toggle === "true") return hasAmiCredentials();
+
+  // Backward compatibility in local/dev. In production, require explicit opt-in.
+  if (isProduction) return false;
+  return hasAmiCredentials();
+};
 
 export default asteriskConfig;
