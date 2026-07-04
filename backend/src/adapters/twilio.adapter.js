@@ -66,6 +66,25 @@ export const cancelCall = async (externalId) => {
   return call;
 };
 
+export const ping = async () => {
+  const twilioClient = getClient();
+  if (!twilioClient) {
+    return { ok: false, skipped: true, reason: "Twilio is not enabled in env" };
+  }
+
+  try {
+    const account = await twilioClient.api.accounts(twilioConfig.accountSid).fetch();
+    return { ok: true, sid: account.sid, status: account.status };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error?.message || "Twilio credential validation failed",
+      code: error?.code,
+      status: error?.status,
+    };
+  }
+};
+
 export const isAvailable = () => isTwilioEnabled();
 
-export default { dialPstn, cancelCall, isAvailable, getClient };
+export default { dialPstn, cancelCall, ping, isAvailable, getClient };

@@ -8,7 +8,7 @@ const DEFAULT_LOCAL_ORIGINS = [
 const normalizeOrigin = (origin = "") => String(origin).trim().replace(/\/$/, "");
 
 export const getAllowedFrontendOrigins = () => {
-  const envOrigins = (process.env.FRONTEND_URL || "")
+  const envOrigins = `${process.env.FRONTEND_URL || ""},${process.env.CORS_ORIGIN || ""}`
     .split(",")
     .map((origin) => normalizeOrigin(origin))
     .filter(Boolean);

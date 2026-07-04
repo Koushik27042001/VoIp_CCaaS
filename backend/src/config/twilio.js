@@ -5,9 +5,9 @@ export const twilioConfig = {
   accountSid: normalizeText(process.env.TWILIO_ACCOUNT_SID),
   authToken: normalizeText(process.env.TWILIO_AUTH_TOKEN),
   phoneNumber: normalizePhone(process.env.TWILIO_PHONE_NUMBER || ""),
-  apiKeySid: normalizeText(process.env.TWILIO_API_KEY_SID),
+  apiKeySid: normalizeText(process.env.TWILIO_API_KEY_SID || process.env.TWILIO_API_KEY),
   apiSecret: normalizeText(process.env.TWILIO_API_SECRET),
-  twimlAppSid: normalizeText(process.env.TWILIO_TWIML_APP_SID),
+  twimlAppSid: normalizeText(process.env.TWILIO_TWIML_APP_SID || process.env.TWILIO_APP_SID),
   /** Public URL for Twilio webhooks (ngrok or production domain) */
   webhookBaseUrl: normalizeText(process.env.PUBLIC_API_URL || "http://localhost:5000").replace(
     /\/$/,

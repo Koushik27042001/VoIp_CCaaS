@@ -47,14 +47,15 @@ const normalizeMongoUri = (rawUri) => {
 };
 
 export const connectDB = async ({ required = true } = {}) => {
-  const { uri, autoFixed } = normalizeMongoUri(process.env.MONGO_URI);
+  const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+  const { uri, autoFixed } = normalizeMongoUri(mongoUri);
 
   if (!uri) {
     if (required) {
-      throw new Error("MONGO_URI is required");
+      throw new Error("MONGO_URI (or MONGODB_URI) is required");
     }
 
-    logger.warn("MONGO_URI is missing; continuing without MongoDB in mock mode");
+    logger.warn("MONGO_URI/MONGODB_URI is missing; continuing without MongoDB in mock mode");
     return { connected: false, reason: "missing_uri" };
   }
 

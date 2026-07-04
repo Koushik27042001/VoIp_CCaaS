@@ -3,10 +3,13 @@ import http from "http";
 import app from "./app.js";
 import { initSocket } from "./socket.js";
 import { connectDB } from "./config/db.js";
+import { validateProductionEnv } from "./config/env.js";
 import { registerEventListeners } from "./events/index.js";
 import logger from "./telemetry/logger.js";
 
 const startServer = async () => {
+  validateProductionEnv();
+
   const isMockMode = process.env.USE_MOCK === "true";
   const allowStartWithoutDb = process.env.ALLOW_START_WITHOUT_DB === "true";
   const dbRequired = !isMockMode && !allowStartWithoutDb;
