@@ -5,7 +5,7 @@
   "engines": {
     "node": "24.x"
   },
-  "homepage": ".",
+  "homepage": "/",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
