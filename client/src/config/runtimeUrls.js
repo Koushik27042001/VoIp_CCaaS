@@ -15,14 +15,11 @@ export const resolveApiBaseUrl = () => {
     envApi = envApi.replace("localhost:5000", "localhost:5002");
   }
 
-  console.log("[Antigravity Debug] REACT_APP_API_URL env variable:", process.env.REACT_APP_API_URL);
-  console.log("[Antigravity Debug] Resolved envApi:", envApi);
   if (envApi) {
     return envApi;
   }
 
   const origin = browserOrigin();
-  console.log("[Antigravity Debug] Browser origin:", origin);
   if (origin) {
     return `${origin}/api`;
   }
@@ -37,7 +34,6 @@ export const resolveSocketBaseUrl = () => {
     envSocket = envSocket.replace("localhost:5000", "localhost:5002");
   }
 
-  console.log("[Antigravity Debug] REACT_APP_SOCKET_URL env variable:", process.env.REACT_APP_SOCKET_URL);
   if (envSocket) {
     return envSocket;
   }

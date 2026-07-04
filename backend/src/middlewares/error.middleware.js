@@ -11,10 +11,11 @@ export class AppError extends Error {
 export const errorHandler = (err, req, res, next) => {
   const status = err.statusCode || err.status || 500;
   const message = err.message || "Internal server error";
+  const isDev = process.env.NODE_ENV === "development";
 
   logger.error(
     {
-      err,
+      err: isDev ? err : { name: err.name, message: err.message, code: err.code },
       status,
       path: req.path,
       method: req.method,
