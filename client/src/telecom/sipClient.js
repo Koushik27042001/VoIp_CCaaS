@@ -4,6 +4,15 @@ let userAgent = null;
 let registerer = null;
 let activeSession = null;
 
+const validateRegistrationConfig = (config = {}) => {
+  const requiredFields = ["extension", "password", "wsServer", "uri"];
+  const missing = requiredFields.filter((field) => !String(config?.[field] || "").trim());
+
+  if (missing.length > 0) {
+    throw new Error(`Incomplete SIP config from backend. Missing: ${missing.join(", ")}`);
+  }
+};
+
 export const getSipState = () => ({
   userAgent,
   registerer,
@@ -15,6 +24,7 @@ export const getSipState = () => ({
  * Register browser agent to Asterisk via WebSocket (SIP.js).
  */
 export const registerSipAgent = async (config, { onStateChange } = {}) => {
+  validateRegistrationConfig(config);
   await unregisterSipAgent();
 
   const uri = UserAgent.makeURI(config.uri);
@@ -37,7 +47,13 @@ export const registerSipAgent = async (config, { onStateChange } = {}) => {
     },
   });
 
-  await userAgent.start();
+  try {
+    await userAgent.start();
+  } catch (error) {
+    throw new Error(
+      `SIP transport connection failed (${config.wsServer}): ${error?.message || "Unknown error"}`
+    );
+  }
 
   registerer = new Registerer(userAgent);
 
@@ -45,7 +61,11 @@ export const registerSipAgent = async (config, { onStateChange } = {}) => {
     registerer.stateChange.addListener(onStateChange);
   }
 
-  await registerer.register();
+  try {
+    await registerer.register();
+  } catch (error) {
+    throw new Error(`SIP REGISTER failed for ${config.uri}: ${error?.message || "Unknown error"}`);
+  }
 
   return { userAgent, registerer };
 };

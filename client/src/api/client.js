@@ -3,6 +3,11 @@ import { resolveApiBaseUrl } from "../config/runtimeUrls";
 
 const API_BASE_URL = resolveApiBaseUrl();
 
+if (process.env.NODE_ENV === "development") {
+  // Helps verify which backend URL the browser bundle is using.
+  console.info("[API] baseURL:", API_BASE_URL);
+}
+
 const API = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,

@@ -10,7 +10,7 @@ import {
   fetchSipConfig,
   reportSipRegistration,
 } from "../api/api";
-import { registerSipAgent, unregisterSipAgent, makeSipCall, endSipCall } from "../telecom/sipClient";
+import { registerSipAgent, unregisterSipAgent } from "../telecom/sipClient";
 import {
   initTwilioDevice,
   connectTwilioOutbound,
@@ -77,6 +77,7 @@ export const useStore = create((set, get) => ({
   telecomMode: "none",
   backendOnline: null,
   backendStatusMessage: "Checking backend...",
+  sessionMissing: false,
   socketEventsBound: false,
   leadsLoading: false,
   leadsError: "",
@@ -386,8 +387,18 @@ export const useStore = create((set, get) => ({
   initTelecom: async () => {
     const token = localStorage.getItem("token");
     if (!token || process.env.REACT_APP_AUTO_TELECOM_INIT === "false") {
+      if (!token) {
+        set({
+          sessionMissing: true,
+          sipStatus: "offline",
+          twilioStatus: "offline",
+          telecomMode: "none",
+        });
+      }
       return;
     }
+
+    set({ sessionMissing: false });
 
     get().bindSocketCallEvents();
 
@@ -463,7 +474,7 @@ export const useStore = create((set, get) => ({
       const config = res.data.data;
 
       if (!config || res.data.provisioned === false) {
-        set({ sipStatus: "offline" });
+        set({ sipStatus: "offline", sessionMissing: false });
         return;
       }
       set({ sipStatus: "registering", telecomMode: "sip" });
@@ -487,14 +498,42 @@ export const useStore = create((set, get) => ({
         },
       });
       set({ sipStatus: "registered", telecomMode: "sip" });
-    } catch (_error) {
-      set({ sipStatus: "failed" });
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "SIP registration failed";
+      const isSessionError =
+        error?.response?.status === 401 ||
+        /no token provided|jwt|token/i.test(message);
+      if (process.env.NODE_ENV === "development") {
+        console.error("[SIP] initTelecom failed:", message, error);
+      }
+      set((state) => ({
+        sipStatus: "failed",
+        sessionMissing: isSessionError,
+        callError: message,
+        activityFeed: [
+          {
+            id: `${Date.now()}-sip-fail`,
+            type: "status",
+            text: `SIP registration failed: ${message}`,
+            time: nowLabel(),
+          },
+          ...state.activityFeed.slice(0, 5),
+        ],
+      }));
     }
   },
   disconnectTelecom: async () => {
     destroyTwilioDevice();
     await unregisterSipAgent();
-    set({ sipStatus: "offline", twilioStatus: "offline", telecomMode: "none" });
+    set({
+      sipStatus: "offline",
+      twilioStatus: "offline",
+      telecomMode: "none",
+      sessionMissing: false,
+    });
   },
   makeRealCall: async (phoneNumber) => {
     const state = get();
@@ -547,27 +586,6 @@ export const useStore = create((set, get) => ({
         return response.data;
       }
 
-      if (state.sipStatus === "registered") {
-        await makeSipCall(phoneNumber, {
-          onCallEstablished: () => {
-            set({
-              isCalling: true,
-              callingNumber: phoneNumber,
-              agentAvailability: "On Call",
-            });
-          },
-          onCallTerminated: () => {
-            set({
-              isCalling: false,
-              callingNumber: "",
-              currentCallId: null,
-              agentAvailability: "Available",
-            });
-          },
-        });
-        return response.data;
-      }
-
       set({
         isCalling: false,
         callingNumber: phoneNumber,
@@ -609,17 +627,9 @@ export const useStore = create((set, get) => ({
     }
   },
   endTelecomCall: async () => {
-    const { currentCallId, sipStatus } = get();
+    const { currentCallId } = get();
 
     disconnectTwilioCall();
-
-    if (sipStatus === "registered") {
-      try {
-        await endSipCall();
-      } catch (_error) {
-        // best-effort
-      }
-    }
 
     if (currentCallId) {
       try {

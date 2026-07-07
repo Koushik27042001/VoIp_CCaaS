@@ -90,6 +90,22 @@ const STYLES = `
     border-left: 3px solid var(--orange);
   }
 
+  .ad-session-banner {
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(248, 113, 113, 0.45);
+    background: rgba(127, 29, 29, 0.35);
+    color: #fee2e2;
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .ad-session-banner a {
+    color: #fecaca;
+    font-weight: 700;
+    text-decoration: underline;
+  }
+
   .ad-workspace {
     display: grid;
     grid-template-columns: minmax(300px, 340px) minmax(0, 1fr) minmax(280px, 320px);
@@ -165,6 +181,7 @@ function StyleTag() {
 export default function AgentDashboard() {
   const initTelecom = useStore((state) => state.initTelecom);
   const disconnectTelecom = useStore((state) => state.disconnectTelecom);
+  const sessionMissing = useStore((state) => state.sessionMissing);
 
   useEffect(() => {
     initTelecom();
@@ -179,6 +196,12 @@ export default function AgentDashboard() {
 
       <div className="ad-root">
         <div className="ad-inner">
+          {sessionMissing ? (
+            <div className="ad-session-banner" role="alert">
+              Session missing or expired. Please <a href="/login">login again</a> to enable SIP registration and calling.
+            </div>
+          ) : null}
+
           <section className="ad-hero">
             <div className="ad-eyebrow">Agent Workspace</div>
             <h1>Always-on calling &amp; CRM console</h1>

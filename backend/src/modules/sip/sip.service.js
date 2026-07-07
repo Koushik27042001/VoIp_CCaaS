@@ -1,4 +1,5 @@
 import * as sipExtensionRepo from "../../repositories/sipExtension.repository.js";
+import * as userRepo from "../../repositories/user.repository.js";
 import { buildRegistrationConfig } from "../../adapters/sip.adapter.js";
 import * as asteriskAdapter from "../../adapters/asterisk.adapter.js";
 import { asteriskConfig } from "../../config/asterisk.js";
@@ -9,9 +10,55 @@ import {
   emitSipFailed,
 } from "../../events/sip.events.js";
 import { AppError } from "../../middlewares/error.middleware.js";
+import logger from "../../telemetry/logger.js";
+
+const buildAutoProvisionPayload = async (userId) => {
+  const all = await sipExtensionRepo.listExtensions();
+  const used = new Set(
+    all
+      .map((item) => Number(item.extension))
+      .filter((value) => Number.isInteger(value) && value > 0)
+  );
+
+  let next = Number(process.env.AGENT_EXTENSION_START || 1001);
+  while (used.has(next)) {
+    next += 1;
+  }
+
+  const user = await userRepo.findUserById(userId);
+  const extension = String(next);
+  const passwordPrefix = process.env.AGENT_EXTENSION_PASSWORD_PREFIX || "agent";
+
+  return {
+    extension,
+    password: `${passwordPrefix}${extension}pass`,
+    displayName: user?.name || `Agent ${extension}`,
+    status: "offline",
+  };
+};
+
+const getOrAutoProvisionExtension = async (userId) => {
+  const existing = await sipExtensionRepo.findByUserId(userId);
+  if (existing) {
+    return existing;
+  }
+
+  const autoProvisionEnabled = process.env.SIP_AUTO_PROVISION_EXTENSIONS !== "false";
+  if (!autoProvisionEnabled) {
+    return null;
+  }
+
+  const payload = await buildAutoProvisionPayload(userId);
+  const created = await sipExtensionRepo.upsertForUser(userId, payload);
+  logger.info(
+    { userId, extension: created?.extension },
+    "Auto-provisioned SIP extension for user"
+  );
+  return created;
+};
 
 export const getRegistrationConfigForUser = async (userId) => {
-  const extension = await sipExtensionRepo.findByUserId(userId);
+  const extension = await getOrAutoProvisionExtension(userId);
 
   if (!extension) {
     return null;

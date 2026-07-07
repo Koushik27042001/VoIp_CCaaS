@@ -1,4 +1,8 @@
 const trimTrailingSlash = (value = "") => String(value).trim().replace(/\/$/, "");
+const normalizeLocalDevPort = (value = "") =>
+  value.includes("localhost:5002")
+    ? value.replace("localhost:5002", "localhost:5001")
+    : value;
 
 const browserOrigin = () => {
   if (typeof window === "undefined") {
@@ -8,12 +12,9 @@ const browserOrigin = () => {
 };
 
 export const resolveApiBaseUrl = () => {
-  let envApi = trimTrailingSlash(process.env.REACT_APP_API_URL || "");
-  
-  // Bulletproof replacement: redirect any stale localhost:5000 requests to 5002
-  if (envApi.includes("localhost:5000")) {
-    envApi = envApi.replace("localhost:5000", "localhost:5002");
-  }
+  const envApi = normalizeLocalDevPort(
+    trimTrailingSlash(process.env.REACT_APP_API_URL || "")
+  );
 
   if (envApi) {
     return envApi;
@@ -24,15 +25,13 @@ export const resolveApiBaseUrl = () => {
     return `${origin}/api`;
   }
 
-  return "http://localhost:5002/api";
+  return "http://localhost:5001/api";
 };
 
 export const resolveSocketBaseUrl = () => {
-  let envSocket = trimTrailingSlash(process.env.REACT_APP_SOCKET_URL || "");
-  
-  if (envSocket.includes("localhost:5000")) {
-    envSocket = envSocket.replace("localhost:5000", "localhost:5002");
-  }
+  const envSocket = normalizeLocalDevPort(
+    trimTrailingSlash(process.env.REACT_APP_SOCKET_URL || "")
+  );
 
   if (envSocket) {
     return envSocket;
@@ -48,7 +47,7 @@ export const resolveSocketBaseUrl = () => {
     return origin;
   }
 
-  return "http://localhost:5002";
+  return "http://localhost:5001";
 };
 
 export default { resolveApiBaseUrl, resolveSocketBaseUrl };

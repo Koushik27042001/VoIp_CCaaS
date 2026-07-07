@@ -10,7 +10,9 @@ services:
       - "10000-10100:10000-10100/udp"
     volumes:
       - ./backend/src/infrastructure/asterisk/pjsip.conf:/etc/asterisk/pjsip.conf
+      - ./backend/src/infrastructure/asterisk/pjsip_custom.conf:/etc/asterisk/pjsip_custom.conf
       - ./backend/src/infrastructure/asterisk/extensions.conf:/etc/asterisk/extensions.conf
+      - ./backend/src/infrastructure/asterisk/extensions_custom.conf:/etc/asterisk/extensions_custom.conf
       - ./backend/src/infrastructure/asterisk/http.conf:/etc/asterisk/http.conf
       - ./backend/src/infrastructure/asterisk/manager.conf:/etc/asterisk/asterisk.manager.conf
     restart: unless-stopped
